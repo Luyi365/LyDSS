@@ -11,11 +11,18 @@
  */
 
 #include <stdio.h>
-#include "../LyBOX.h"
+#include "../lybox.h"
 
 int simple()
 {
-    lybox_t *lybox = lybox_create(lyboxType_GENERAL, 10, sizeof(int));
+    lybox_t *lybox = lybox_create(lyboxType_GENERAL, 4, sizeof(int));
+
+    lybox_set_box_attribute(lybox, (struct box_attribute){
+        .send_mode = 0,          
+        .sort_function = 0,     
+        .receive_mode = 0,       
+        .receive_direction = 1   
+    });
 
     int data1[6] = {1,2,3,4,5,6};
 
@@ -24,6 +31,12 @@ int simple()
     lybox_send(lybox, &data1[3], 2);
 
     lybox_send(lybox, &data1[5], 1);
+
+    printf("Box data: ");
+    for(int i = 0; i < 4; i++) {
+        printf("%d ", *(int*)(lybox->box + i * lybox->member_size));
+    }
+    printf("\n");
 
     int data2[6] = {0};
 
