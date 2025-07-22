@@ -14,15 +14,13 @@ lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size)
     lybox->size = box_len * mbr_size;
     lybox->count = 0;
     lybox->member_size = mbr_size;
-    lybox->head = 0;
-    lybox->tail = 0;
+    lybox->write_index = 0;
+    lybox->read_index = 0;
 
-    switch(type) {
+    switch(type)
+    {
     case lyboxType_GENERAL:
-        lybox->box_attribute.send_mode = 0;
-        lybox->box_attribute.sort_function = 0;     // 从前往后存数据
-        lybox->box_attribute.receive_mode = 0;
-        lybox->box_attribute.receive_direction = 0;  // 从前往后取数据
+        lybox->read_mode = lyboxReadMode_FIFO;
         break;
     default:
         break;
@@ -54,139 +52,82 @@ uint8_t lybox_get_used_space(lybox_t *lybox)
 
 bool lybox_send(lybox_t *lybox, void *pval, size_t num)
 {
-    // if((lybox->count + num) * lybox->member_size >= lybox->size) {
-    //     return false;
-    // }
+    uint8_t to_write = (num > (lybox->len - lybox->count)) ? (lybox->len - lybox->count) : num;    // 允许写入数量
 
-    // void *p_src = pval;
-    // void *p_dst = lybox->box;
-    // uint8_t buff[num];
-    // if(lybox->box_attribute.send_mode == 0) {
-    //     if(lybox->box_attribute.sort_function == 0) { // 正序
-    //         p_dst += lybox->count * lybox->member_size;
-    //     }
-    //     else if(lybox->box_attribute.sort_function == 1) { // 倒序
-    //         memcpy(buff, pval, num * lybox->member_size);
-    //         qsort(buff, num, lybox->member_size, lybox->box_attribute.sort_function);
-    //         p_src = buff;
-    //         p_dst += lybox->size - (lybox->count + num) * lybox->member_size;
-    //     }
-    // }
-    // else if(lybox->box_attribute.send_mode == 1) {
-    //     if(lybox->box_attribute.sort_function == 0) { // 正序
-    //         p_dst += lybox->count * lybox->member_size;
-    //     }
-    //     else if(lybox->box_attribute.sort_function == 1) { // 倒序
-    //         p_dst += lybox->size - (lybox->count + num) * lybox->member_size;
-    //     }
-    // }
-
-    // memcpy(p_dst, p_src, num * lybox->member_size);
-    // lybox->count += num;
-
-    uint8_t write_num = (num > (lybox->len - lybox->count)) ? (lybox->len - lybox->count) : num;
-    
-    if (write_num <= 0) return 0;
+    if(to_write <= 0) return 0;
 
     // 分两种情况拷贝（是否跨越缓冲区末尾）
-    uint8_t first_num = lybox->len - lybox->head;
-    if (write_num <= first_num) {
-        memcpy(lybox->box + lybox->head * lybox->member_size, pval, write_num * lybox->member_size);
-    } 
+    uint8_t first_space = lybox->len - lybox->write_index;
+    if(to_write <= first_space) {
+        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, to_write * lybox->member_size);
+    }
     else {
-        memcpy(lybox->box + lybox->head * lybox->member_size, pval, first_num * lybox->member_size);
-        memcpy(lybox->box, pval + first_num, (write_num - first_num) * lybox->member_size);
+        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, first_space * lybox->member_size);
+        memcpy(lybox->box, pval + first_space, (to_write - first_space) * lybox->member_size);
     }
 
-    lybox->head = (lybox->head + write_num) % lybox->len;
-    lybox->count += write_num;
+    if(lybox->read_mode == lyboxReadMode_FILO_STREAM || lybox->read_mode == lyboxReadMode_FILO_CHUNK) {
+        lybox->read_index = (lybox->write_index + to_write - 1) % lybox->len;
+    }
+    lybox->write_index = (lybox->write_index + to_write) % lybox->len;
+    lybox->count += to_write;
 
     return true;
 }
 
 bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
 {
-    // if(num > lybox->count) {
-    //     return false;
-    // }
+    uint8_t to_read = (num > lybox->count) ? lybox->count : num;
 
-    // void *p_src = lybox->box;
-    // uint8_t buff[num];
-    // if(lybox->box_attribute.receive_mode == 0) {
-    //     if(lybox->box_attribute.sort_function == 0) { // 正序
-    //         if(lybox->box_attribute.receive_direction == 0) { // 从前往后取数据
-    //             memmove(lybox->box, lybox->box + num * lybox->member_size, (lybox->count - num) * lybox->member_size);
-    //         }
-    //         else if(lybox->box_attribute.receive_direction == 1) { // 从后往前取数据
+    if(to_read <= 0) return 0;
 
-    //         }
-    //     }
-    //     else if(lybox->box_attribute.sort_function == 1) {    // 倒序
-    //         if(lybox->box_attribute.receive_direction == 0) { // 从前往后取数据
-
-    //         }
-    //         else if(lybox->box_attribute.receive_direction == 1) { // 从后往前取数据
-
-    //         }
-    //     }
-    // }
-    // else if(lybox->box_attribute.receive_mode == 1) {
-    //     if(lybox->box_attribute.sort_function == 0) { // 正序
-    //         if(lybox->box_attribute.receive_direction == 0) { // 从前往后取数据
-    //             memmove(lybox->box, lybox->box + num * lybox->member_size, (lybox->count - num) * lybox->member_size);
-    //         }
-    //         else if(lybox->box_attribute.receive_direction == 1) { // 从后往前取数据
-    //             p_src += (lybox->count - num) * lybox->member_size;
-    //         }
-    //     }
-    //     else if(lybox->box_attribute.sort_function == 1) {    // 倒序
-    //         if(lybox->box_attribute.receive_direction == 0) { // 从前往后取数据
-    //             p_src += lybox->size - (lybox->count * lybox->member_size);
-    //         }
-    //         else if(lybox->box_attribute.receive_direction == 1) { // 从后往前取数据
-    //             p_src += lybox->size - num * lybox->member_size;
-    //         }
-    //     }
-    // }
-
-    // memcpy(pbuff, p_src, num * lybox->member_size);
-    // // 对数据进行检查，如果排序是正序，则检查数据是否置顶，不置顶则位移置顶
-    // // 如果排序是逆序，则检查数据是否置底，不置底则位移置底
-    // if(lybox->box_attribute.sort_function == 0 && lybox->box_attribute.receive_direction == 0) {
-    //     memmove(lybox->box, lybox->box + num * lybox->member_size, (lybox->count - num) * lybox->member_size);
-    // }
-    // else if(lybox->box_attribute.sort_function == 1 && lybox->box_attribute.receive_direction == 1) {
-    //     memmove(lybox->box + lybox->size - (lybox->count - num) * lybox->member_size, lybox->box + lybox->size - lybox->count * lybox->member_size, (lybox->count - num) * lybox->member_size);
-    // }
-    // lybox->count -= num;
-
-    uint8_t read_num = (num > lybox->count) ? lybox->count : num;
-    
-    if (read_num <= 0) return 0;
-
-    // 分两种情况拷贝（是否跨越缓冲区末尾）
-    uint8_t first_num = lybox->len - lybox->tail; // 剩余可读空间
-    if (read_num <= first_num) {
-        memcpy(pbuff, lybox->box + lybox->tail * lybox->member_size, read_num * lybox->member_size);
-    } 
-    else {
-        memcpy(pbuff, lybox->box + lybox->tail * lybox->member_size, first_num * lybox->member_size);
-        memcpy(pbuff + first_num, lybox->box, (read_num - first_num) * lybox->member_size);
+    if(lybox->read_mode == lyboxReadMode_FIFO) {
+        // 分两种情况拷贝（是否跨越缓冲区末尾）
+        uint8_t first_space = lybox->len - lybox->read_index; // 剩余可读空间
+        if(to_read <= first_space) {
+            memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, to_read * lybox->member_size);
+        }
+        else {
+            memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, first_space * lybox->member_size);
+            memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
+        }
+        lybox->read_index = (lybox->read_index + to_read) % lybox->len;
+    }
+    else if(lybox->read_mode == lyboxReadMode_FILO_STREAM || lybox->read_mode == lyboxReadMode_FILO_CHUNK) {
+        // 分两种情况拷贝（是否跨越缓冲区末尾）
+        uint8_t first_space = lybox->read_index + 1; // 剩余可读空间
+        if(to_read <= first_space) {
+            memcpy(pbuff, lybox->box + (lybox->read_index - to_read + 1) * lybox->member_size, to_read * lybox->member_size);
+        }
+        else {
+            // memcpy(pbuff, lybox->box + (lybox->read_index - first_space) * lybox->member_size, first_space * lybox->member_size);
+            // memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
+        }
+        lybox->write_index = (lybox->read_index - to_read + 1) % lybox->len;
+        lybox->read_index = (lybox->read_index - to_read) % lybox->len;
     }
 
-    lybox->tail = (lybox->tail + read_num) % lybox->len;
-    lybox->count -= read_num;
+    // 使用双指针交换成员顺序
+    if(lybox->read_mode == lyboxReadMode_FILO_STREAM) {
+        void *left = pbuff;
+        void *right = left + (num - 1) * lybox->member_size;
+        void *temp = malloc(lybox->member_size);
+
+        while(left < right) {
+        // 交换左右指针指向的成员
+            memcpy(temp, left, lybox->member_size);
+            memcpy(left, right, lybox->member_size);
+            memcpy(right, temp, lybox->member_size);
+
+            // 移动指针
+            left += lybox->member_size;
+            right -= lybox->member_size;
+        }
+    }
+
+    lybox->count -= to_read;
 
     return true;
-}
-
-void lybox_set_box_attribute(lybox_t *lybox, struct box_attribute attr)
-{
-    lybox->box_attribute.send_mode = attr.send_mode;
-    lybox->box_attribute.sort_function = attr.sort_function;
-    lybox->box_attribute.receive_mode = attr.receive_mode;
-    lybox->box_attribute.receive_direction = attr.receive_direction;
-    lybox->type = lyboxType_CUSTOM; // 设置为自定义类型
 }
 
 // 时间升序（即旧数据在前，新数据在后）

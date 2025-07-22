@@ -19,7 +19,6 @@ enum lyboxType {
     lyboxType_NUMBER,
 };
 
-// 追赶的方式
 struct lybox {
     enum lyboxType type;	///< 容器类型
     uint8_t len;    ///< 容器长度
@@ -27,15 +26,19 @@ struct lybox {
     size_t count;    ///< 容器中成员实际数量
 
     uint8_t member_size;    ///< 单个成员的大小（单位：字节）
-    uint8_t head;    ///< 写索引（指向下一个可写入的位置索引）
-    uint8_t tail;    ///< 读索引（指向下一个可读取的位置索引）
+    // 注意：下面两个索引存在无效值UINT8_MAX
+    uint8_t write_index;    ///< 写索引（指向下一个可写入的位置索引）
+    uint8_t read_index;     ///< 读索引（指向下一个可读取的位置索引）
 
-    struct box_attribute {
-        func_sort_t *sort_function;          ///< 排序函数
-        uint8_t send_mode;          ///< 0为流方式（单成员），1为块方式
-        uint8_t receive_mode;       ///< 0为流方式（单成员），1为块方式
-        uint8_t receive_direction;  ///< 0为从前往后取数据，1为从后往前取数据
-    } box_attribute;           ///< 队列化属性(决定了数据的流动方式)
+
+// 对于环形缓冲来说，追赶的方式不区分流和块，因为这两种方式最后得到的结果是一样的
+// 但追赶的方式固定为FIFO，很多时候也需要FILO，因此需要引进栈的方式（但这个栈有点像是相向而行的环形缓冲），但同时也需要实现块的方式
+    enum lyboxReadMode {
+        lyboxReadMode_FIFO,
+        lyboxReadMode_FILO_STREAM,
+        lyboxReadMode_FILO_CHUNK,
+    } read_mode;
+    bool keep_fresh;    ///< 是否覆盖写入
 
     void *box;     ///< 容器
 };
@@ -44,6 +47,5 @@ lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size);
 void lybox_delete(lybox_t *lybox);
 bool lybox_send(lybox_t *lybox, void *pval, size_t num);
 bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
-void lybox_set_box_attribute(lybox_t *lybox, struct box_attribute attr);
 
 #endif /* __LYBOX_H__ */
