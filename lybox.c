@@ -11,16 +11,16 @@ lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size)
 
     lybox->type = type;
     lybox->len = box_len;
-    lybox->size = box_len * mbr_size;
     lybox->count = 0;
     lybox->member_size = mbr_size;
     lybox->write_index = 0;
-    lybox->read_index = 0;
+    lybox->read_index = UINT8_MAX;
 
     switch(type)
     {
     case lyboxType_GENERAL:
         lybox->read_mode = lyboxReadMode_FIFO;
+        lybox->keep_fresh = false;
         break;
     default:
         break;
@@ -52,7 +52,13 @@ uint8_t lybox_get_used_space(lybox_t *lybox)
 
 bool lybox_send(lybox_t *lybox, void *pval, size_t num)
 {
-    uint8_t to_write = (num > (lybox->len - lybox->count)) ? (lybox->len - lybox->count) : num;    // 允许写入数量
+    uint8_t to_write = 0;
+    if(lybox->keep_fresh) {
+        to_write = (num > lybox->len) ? lybox->len : num;    // 允许写入数量
+    }
+    else {
+        to_write = (num > (lybox->len - lybox->count)) ? (lybox->len - lybox->count) : num;
+    }
 
     if(to_write <= 0) return 0;
 
@@ -63,13 +69,13 @@ bool lybox_send(lybox_t *lybox, void *pval, size_t num)
     }
     else {
         memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, first_space * lybox->member_size);
-        memcpy(lybox->box, pval + first_space, (to_write - first_space) * lybox->member_size);
+        memcpy(lybox->box, pval + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
     }
 
     if(lybox->read_mode == lyboxReadMode_FILO_STREAM || lybox->read_mode == lyboxReadMode_FILO_CHUNK) {
-        lybox->read_index = (lybox->write_index + to_write - 1) % lybox->len;
+        lybox->read_index = (uint8_t)(lybox->write_index + to_write - 1) % lybox->len;
     }
-    lybox->write_index = (lybox->write_index + to_write) % lybox->len;
+    lybox->write_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
     lybox->count += to_write;
 
     return true;
@@ -91,20 +97,20 @@ bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
             memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, first_space * lybox->member_size);
             memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
         }
-        lybox->read_index = (lybox->read_index + to_read) % lybox->len;
+        lybox->read_index = (uint8_t)(lybox->read_index + to_read) % lybox->len;
     }
     else if(lybox->read_mode == lyboxReadMode_FILO_STREAM || lybox->read_mode == lyboxReadMode_FILO_CHUNK) {
         // 分两种情况拷贝（是否跨越缓冲区末尾）
         uint8_t first_space = lybox->read_index + 1; // 剩余可读空间
         if(to_read <= first_space) {
-            memcpy(pbuff, lybox->box + (lybox->read_index - to_read + 1) * lybox->member_size, to_read * lybox->member_size);
+            memcpy(pbuff, lybox->box + (lybox->read_index - (to_read - 1)) * lybox->member_size, to_read * lybox->member_size);
         }
         else {
-            // memcpy(pbuff, lybox->box + (lybox->read_index - first_space) * lybox->member_size, first_space * lybox->member_size);
-            // memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
+            memcpy(pbuff, lybox->box + (lybox->len - to_read + first_space) * lybox->member_size, (to_read - first_space) * lybox->member_size);
+            memcpy(pbuff + (to_read - first_space) * lybox->member_size, lybox->box, first_space * lybox->member_size);
         }
-        lybox->write_index = (lybox->read_index - to_read + 1) % lybox->len;
-        lybox->read_index = (lybox->read_index - to_read) % lybox->len;
+        lybox->write_index = (uint8_t)(lybox->read_index - to_read + 1) % lybox->len;
+        lybox->read_index = (uint8_t)(lybox->read_index - to_read) % lybox->len;
     }
 
     // 使用双指针交换成员顺序
@@ -128,16 +134,4 @@ bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
     lybox->count -= to_read;
 
     return true;
-}
-
-// 时间升序（即旧数据在前，新数据在后）
-uint8_t sort_time_asc(const void *a, const void *b)
-{
-    // 数组里的数据本来就是按照时间顺序排列的，所以不需要做任何处理
-    return 0;
-}
-// 时间降序（即新数据在前，旧数据在后）
-uint8_t sort_time_desc(const void *a, const void *b)
-{
-    return (*(uint8_t *)b - *(uint8_t *)a);
 }

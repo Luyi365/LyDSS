@@ -22,7 +22,6 @@ enum lyboxType {
 struct lybox {
     enum lyboxType type;	///< 容器类型
     uint8_t len;    ///< 容器长度
-    size_t size;   	    ///< 容器大小（单位：字节）
     size_t count;    ///< 容器中成员实际数量
 
     uint8_t member_size;    ///< 单个成员的大小（单位：字节）
