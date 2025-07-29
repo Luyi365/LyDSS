@@ -62,7 +62,9 @@ typedef struct lybox lybox_t;
 typedef int(__cdecl func_sort_t)(const void *, const void *);
 
 enum lyboxType {
-    lyboxType_GENERAL = 0,
+    lyboxType_QUEUE = 0,
+    lyboxType_STACK,
+    lyboxType_STREAM,
 
     lyboxType_CUSTOM,    ///< 自定义类型
     lyboxType_NUMBER,

@@ -69,10 +69,17 @@ lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size)
 
     switch(type)
     {
-    case lyboxType_GENERAL:
+    case lyboxType_QUEUE:
         lybox->read_mode = lyboxReadMode_FIFO;
         lybox->keep_fresh = false;
         break;
+    case lyboxType_STACK:
+        lybox->read_mode = lyboxReadMode_LIFO_CHUNK;
+        lybox->keep_fresh = false;
+        break;
+    case lyboxType_STREAM:
+        lybox->read_mode = lyboxReadMode_LIFO_STREAM;
+        lybox->keep_fresh = true;
     default:
         break;
     }
