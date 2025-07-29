@@ -34,8 +34,8 @@ struct lybox {
 // 但追赶的方式固定为FIFO，很多时候也需要FILO，因此需要引进栈的方式（但这个栈有点像是相向而行的环形缓冲），但同时也需要实现块的方式
     enum lyboxReadMode {
         lyboxReadMode_FIFO,
-        lyboxReadMode_FILO_STREAM,
-        lyboxReadMode_FILO_CHUNK,
+        lyboxReadMode_LIFO_STREAM,
+        lyboxReadMode_LIFO_CHUNK,
     } read_mode;
     bool keep_fresh;    ///< 是否覆盖写入
 

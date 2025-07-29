@@ -14,7 +14,7 @@ lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size)
     lybox->count = 0;
     lybox->member_size = mbr_size;
     lybox->write_index = 0;
-    lybox->read_index = UINT8_MAX;
+    lybox->read_index = 0;
 
     switch(type)
     {
@@ -53,8 +53,15 @@ uint8_t lybox_get_used_space(lybox_t *lybox)
 bool lybox_send(lybox_t *lybox, void *pval, size_t num)
 {
     uint8_t to_write = 0;
+    uint8_t offset = 0;
+
+    // 实际写入数量
     if(lybox->keep_fresh) {
-        to_write = (num > lybox->len) ? lybox->len : num;    // 允许写入数量
+        to_write = (num > lybox->len) ? lybox->len : num;
+        if(num > lybox->len) {
+            offset = (num - to_write) * lybox->member_size;
+            lybox->write_index = (lybox->write_index - (lybox->len - (num % lybox->len))) % lybox->len;
+        }
     }
     else {
         to_write = (num > (lybox->len - lybox->count)) ? (lybox->len - lybox->count) : num;
@@ -65,18 +72,21 @@ bool lybox_send(lybox_t *lybox, void *pval, size_t num)
     // 分两种情况拷贝（是否跨越缓冲区末尾）
     uint8_t first_space = lybox->len - lybox->write_index;
     if(to_write <= first_space) {
-        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, to_write * lybox->member_size);
+        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, to_write * lybox->member_size);
     }
     else {
-        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, first_space * lybox->member_size);
-        memcpy(lybox->box, pval + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
+        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, first_space * lybox->member_size);
+        memcpy(lybox->box, pval + offset + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
     }
 
-    if(lybox->read_mode == lyboxReadMode_FILO_STREAM || lybox->read_mode == lyboxReadMode_FILO_CHUNK) {
+    if(lybox->read_mode == lyboxReadMode_LIFO_STREAM || lybox->read_mode == lyboxReadMode_LIFO_CHUNK) {
         lybox->read_index = (uint8_t)(lybox->write_index + to_write - 1) % lybox->len;
     }
+    else if(lybox->count + to_write > lybox->len) {
+        lybox->read_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
+    }
     lybox->write_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
-    lybox->count += to_write;
+    lybox->count = (to_write + lybox->count) > lybox->len ? lybox->len : to_write + lybox->count;
 
     return true;
 }
@@ -99,7 +109,7 @@ bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
         }
         lybox->read_index = (uint8_t)(lybox->read_index + to_read) % lybox->len;
     }
-    else if(lybox->read_mode == lyboxReadMode_FILO_STREAM || lybox->read_mode == lyboxReadMode_FILO_CHUNK) {
+    else if(lybox->read_mode == lyboxReadMode_LIFO_STREAM || lybox->read_mode == lyboxReadMode_LIFO_CHUNK) {
         // 分两种情况拷贝（是否跨越缓冲区末尾）
         uint8_t first_space = lybox->read_index + 1; // 剩余可读空间
         if(to_read <= first_space) {
@@ -114,7 +124,7 @@ bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
     }
 
     // 使用双指针交换成员顺序
-    if(lybox->read_mode == lyboxReadMode_FILO_STREAM) {
+    if(lybox->read_mode == lyboxReadMode_LIFO_STREAM) {
         void *left = pbuff;
         void *right = left + (num - 1) * lybox->member_size;
         void *temp = malloc(lybox->member_size);
