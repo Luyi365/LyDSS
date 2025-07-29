@@ -46,5 +46,6 @@ lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size);
 void lybox_delete(lybox_t *lybox);
 bool lybox_send(lybox_t *lybox, void *pval, size_t num);
 bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
+bool lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
 
 #endif /* __LYBOX_H__ */

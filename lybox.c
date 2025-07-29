@@ -95,7 +95,7 @@ bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
 {
     uint8_t to_read = (num > lybox->count) ? lybox->count : num;
 
-    if(to_read <= 0) return 0;
+    if(to_read <= 0 || num > lybox->count) return 0;
 
     if(lybox->read_mode == lyboxReadMode_FIFO) {
         // 分两种情况拷贝（是否跨越缓冲区末尾）
@@ -121,6 +121,59 @@ bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
         }
         lybox->write_index = (uint8_t)(lybox->read_index - to_read + 1) % lybox->len;
         lybox->read_index = (uint8_t)(lybox->read_index - to_read) % lybox->len;
+    }
+
+    // 使用双指针交换成员顺序
+    if(lybox->read_mode == lyboxReadMode_LIFO_STREAM) {
+        void *left = pbuff;
+        void *right = left + (num - 1) * lybox->member_size;
+        void *temp = malloc(lybox->member_size);
+
+        while(left < right) {
+        // 交换左右指针指向的成员
+            memcpy(temp, left, lybox->member_size);
+            memcpy(left, right, lybox->member_size);
+            memcpy(right, temp, lybox->member_size);
+
+            // 移动指针
+            left += lybox->member_size;
+            right -= lybox->member_size;
+        }
+    }
+
+    lybox->count -= to_read;
+
+    return true;
+}
+
+// peek和receive的区别在于peek不会移动指针位置
+bool lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
+{
+    uint8_t to_read = (num > lybox->count) ? lybox->count : num;
+
+    if(to_read <= 0 || num > lybox->count) return 0;
+
+    if(lybox->read_mode == lyboxReadMode_FIFO) {
+        // 分两种情况拷贝（是否跨越缓冲区末尾）
+        uint8_t first_space = lybox->len - lybox->read_index; // 剩余可读空间
+        if(to_read <= first_space) {
+            memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, to_read * lybox->member_size);
+        }
+        else {
+            memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, first_space * lybox->member_size);
+            memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
+        }
+    }
+    else if(lybox->read_mode == lyboxReadMode_LIFO_STREAM || lybox->read_mode == lyboxReadMode_LIFO_CHUNK) {
+        // 分两种情况拷贝（是否跨越缓冲区末尾）
+        uint8_t first_space = lybox->read_index + 1; // 剩余可读空间
+        if(to_read <= first_space) {
+            memcpy(pbuff, lybox->box + (lybox->read_index - (to_read - 1)) * lybox->member_size, to_read * lybox->member_size);
+        }
+        else {
+            memcpy(pbuff, lybox->box + (lybox->len - to_read + first_space) * lybox->member_size, (to_read - first_space) * lybox->member_size);
+            memcpy(pbuff + (to_read - first_space) * lybox->member_size, lybox->box, first_space * lybox->member_size);
+        }
     }
 
     // 使用双指针交换成员顺序
