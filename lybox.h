@@ -36,16 +36,16 @@
  *       \  /oo|\_______
  *         (_"_)\  牛码  )\/\
  *  █████   U   ||-----j/  ███████████     ███████    █████ █████
- * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███ 
- *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███  
- *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████  
- *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███  
- *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███ 
+ * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███
+ *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███
+ *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████
+ *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███
+ *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███
  *  ███████████;░░███████  ███████████  ░░░███████░   █████ █████
- * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░ 
+ * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░
  *          ;;;  ███ ░███
  *          ;;  ░░██████
- *           ;   ░░░░░░                                       
+ *           ;   ░░░░░░
  */
 
 
@@ -59,7 +59,7 @@
 
 /* LyBOX */
 typedef struct lybox lybox_t;
-typedef int(__cdecl func_sort_t)(const void *, const void *);
+// typedef int(__cdecl func_sort_t)(const void *, const void *);
 
 enum lyboxType {
     lyboxType_QUEUE = 0,
@@ -99,5 +99,35 @@ void lybox_set_fresh(lybox_t *lybox, bool keep_fresh);
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num);
 uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
 uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
+
+
+/* --------------------------------- 事件/标志组 --------------------------------- */
+#define EVENT_GROUP_USE_BITS    8
+#if EVENT_GROUP_USE_BITS <= 8
+typedef uint8_t event_bits_t;
+#elif EVENT_GROUP_USE_BITS <= 16
+typedef uint16_t event_bits_t;
+#elif EVENT_GROUP_USE_BITS <= 32
+typedef uint32_t event_bits_t;
+#else
+#warn "EVENT_GROUP_USE_BITS too large"
+#endif
+
+typedef lybox_t event_group_t;
+
+#define EVENT_BIT_0	( 1 << 0 )
+#define EVENT_BIT_1	( 1 << 1 )
+#define EVENT_BIT_2	( 1 << 2 )
+#define EVENT_BIT_3	( 1 << 3 )
+#define EVENT_BIT_4	( 1 << 4 )
+#define EVENT_BIT_5	( 1 << 5 )
+#define EVENT_BIT_6	( 1 << 6 )
+#define EVENT_BIT_7	( 1 << 7 )
+
+event_group_t *event_group_create(void);
+bool event_group_set(event_group_t *event_group, const event_bits_t bits);
+bool event_group_clear(event_group_t *event_group, const event_bits_t bits);
+event_bits_t event_group_get(event_group_t *event_group);
+void event_group_delete(event_group_t *event_group);
 
 #endif /* __LYBOX_H__ */

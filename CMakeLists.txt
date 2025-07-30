@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(LyBOX VERSION 0.1.0 LANGUAGES C)
 
-add_library(LyBOX LyBOX.c)
+add_library(LyBOX lybox.c lybox_api.c)
 
 file(GLOB_RECURSE SOURCES_EXAMPLES examples/*.c)
 add_executable(LyBOX_ExamplesTest test/run_all_examples.c ${SOURCES_EXAMPLES})

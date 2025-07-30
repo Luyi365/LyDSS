@@ -49,11 +49,9 @@
  */
 
 
-#include <stdbool.h>
 #include <string.h>
 #include <malloc.h>
-#include <stdint.h> 
-#include "./lybox.h"
+#include "lybox.h"
 
 // box_len:可存储的最大项目数
 lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size)
