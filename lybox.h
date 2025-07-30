@@ -59,19 +59,8 @@
 
 /* LyBOX */
 typedef struct lybox lybox_t;
-// typedef int(__cdecl func_sort_t)(const void *, const void *);
-
-enum lyboxType {
-    lyboxType_QUEUE = 0,
-    lyboxType_STACK,
-    lyboxType_STREAM,
-
-    lyboxType_CUSTOM,    ///< 自定义类型
-    lyboxType_NUMBER,
-};
 
 struct lybox {
-    enum lyboxType type;	///< 容器类型
     uint8_t len;    ///< 容器长度
     size_t count;    ///< 容器中成员实际数量
 
@@ -85,49 +74,19 @@ struct lybox {
 // 但追赶的方式固定为FIFO，很多时候也需要FILO，因此需要引进栈的方式（但这个栈有点像是相向而行的环形缓冲），但同时也需要实现块的方式
     enum lyboxReadMode {
         lyboxReadMode_FIFO,
-        lyboxReadMode_LIFO_STREAM,
-        lyboxReadMode_LIFO_CHUNK,
+        lyboxReadMode_LIFO_BYTE,
+        lyboxReadMode_LIFO_BLOCK,
     } read_mode;
     bool keep_fresh;    ///< 是否覆盖写入
 
     void *box;     ///< 容器
 };
 
-lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size);
+lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum lyboxReadMode r_mode, bool fresh);
 void lybox_delete(lybox_t *lybox);
 void lybox_set_fresh(lybox_t *lybox, bool keep_fresh);
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num);
 uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
 uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
-
-
-/* --------------------------------- 事件/标志组 --------------------------------- */
-#define EVENT_GROUP_USE_BITS    8
-#if EVENT_GROUP_USE_BITS <= 8
-typedef uint8_t event_bits_t;
-#elif EVENT_GROUP_USE_BITS <= 16
-typedef uint16_t event_bits_t;
-#elif EVENT_GROUP_USE_BITS <= 32
-typedef uint32_t event_bits_t;
-#else
-#warn "EVENT_GROUP_USE_BITS too large"
-#endif
-
-typedef lybox_t event_group_t;
-
-#define EVENT_BIT_0	( 1 << 0 )
-#define EVENT_BIT_1	( 1 << 1 )
-#define EVENT_BIT_2	( 1 << 2 )
-#define EVENT_BIT_3	( 1 << 3 )
-#define EVENT_BIT_4	( 1 << 4 )
-#define EVENT_BIT_5	( 1 << 5 )
-#define EVENT_BIT_6	( 1 << 6 )
-#define EVENT_BIT_7	( 1 << 7 )
-
-event_group_t *event_group_create(void);
-bool event_group_set(event_group_t *event_group, const event_bits_t bits);
-bool event_group_clear(event_group_t *event_group, const event_bits_t bits);
-event_bits_t event_group_get(event_group_t *event_group);
-void event_group_delete(event_group_t *event_group);
 
 #endif /* __LYBOX_H__ */

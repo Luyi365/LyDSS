@@ -36,16 +36,16 @@
  *       \  /oo|\_______
  *         (_"_)\  牛码  )\/\
  *  █████   U   ||-----j/  ███████████     ███████    █████ █████
- * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███ 
- *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███  
- *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████  
- *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███  
- *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███ 
+ * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███
+ *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███
+ *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████
+ *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███
+ *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███
  *  ███████████;░░███████  ███████████  ░░░███████░   █████ █████
- * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░ 
+ * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░
  *          ;;;  ███ ░███
  *          ;;  ░░██████
- *           ;   ░░░░░░                                       
+ *           ;   ░░░░░░
  */
 
 
@@ -54,33 +54,18 @@
 #include "lybox.h"
 
 // box_len:可存储的最大项目数
-lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size)
+lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum lyboxReadMode r_mode, bool fresh)
 {
     lybox_t *lybox = malloc(sizeof(lybox_t));
 
-    lybox->type = type;
     lybox->len = box_len;
     lybox->count = 0;
     lybox->member_size = mbr_size;
     lybox->write_index = 0;
     lybox->read_index = 0;
 
-    switch(type)
-    {
-    case lyboxType_QUEUE:
-        lybox->read_mode = lyboxReadMode_FIFO;
-        lybox->keep_fresh = false;
-        break;
-    case lyboxType_STACK:
-        lybox->read_mode = lyboxReadMode_LIFO_CHUNK;
-        lybox->keep_fresh = false;
-        break;
-    case lyboxType_STREAM:
-        lybox->read_mode = lyboxReadMode_LIFO_STREAM;
-        lybox->keep_fresh = true;
-    default:
-        break;
-    }
+    lybox->read_mode = r_mode;
+    lybox->keep_fresh = fresh;
 
     lybox->box = calloc(box_len, mbr_size);
 
@@ -97,7 +82,6 @@ void lybox_delete(lybox_t *lybox)
 void lybox_set_fresh(lybox_t *lybox, bool keep_fresh)
 {
     lybox->keep_fresh = keep_fresh;
-    lybox->type = lyboxType_CUSTOM;
 }
 
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num)
@@ -129,7 +113,7 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num)
         memcpy(lybox->box, pval + offset + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
     }
 
-    if(lybox->read_mode == lyboxReadMode_LIFO_STREAM || lybox->read_mode == lyboxReadMode_LIFO_CHUNK) {
+    if(lybox->read_mode == lyboxReadMode_LIFO_BYTE || lybox->read_mode == lyboxReadMode_LIFO_BLOCK) {
         lybox->read_index = (uint8_t)(lybox->write_index + to_write - 1) % lybox->len;
     }
     else if(lybox->count + to_write > lybox->len) {
@@ -144,11 +128,11 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num)
 uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
 {
     uint8_t to_read = lybox_peek(lybox, pbuff, num);
-    
+
     if(lybox->read_mode == lyboxReadMode_FIFO) {
         lybox->read_index = (uint8_t)(lybox->read_index + to_read) % lybox->len;
     }
-    else if(lybox->read_mode == lyboxReadMode_LIFO_STREAM || lybox->read_mode == lyboxReadMode_LIFO_CHUNK) {
+    else if(lybox->read_mode == lyboxReadMode_LIFO_BYTE || lybox->read_mode == lyboxReadMode_LIFO_BLOCK) {
         lybox->write_index = (uint8_t)(lybox->read_index - to_read + 1) % lybox->len;
         lybox->read_index = (uint8_t)(lybox->read_index - to_read) % lybox->len;
     }
@@ -175,7 +159,7 @@ uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
             memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
         }
     }
-    else if(lybox->read_mode == lyboxReadMode_LIFO_STREAM || lybox->read_mode == lyboxReadMode_LIFO_CHUNK) {
+    else if(lybox->read_mode == lyboxReadMode_LIFO_BYTE || lybox->read_mode == lyboxReadMode_LIFO_BLOCK) {
         // 分两种情况拷贝（是否跨越缓冲区末尾）
         uint8_t first_space = lybox->read_index + 1; // 剩余可读空间
         if(to_read <= first_space) {
@@ -188,7 +172,7 @@ uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
     }
 
     // 使用双指针交换成员顺序
-    if(lybox->read_mode == lyboxReadMode_LIFO_STREAM) {
+    if(lybox->read_mode == lyboxReadMode_LIFO_BYTE) {
         void *left = pbuff;
         void *right = left + (num - 1) * lybox->member_size;
         void *temp = malloc(lybox->member_size);

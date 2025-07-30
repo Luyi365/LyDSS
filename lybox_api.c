@@ -27,14 +27,107 @@
  * @note
  *
  *
+ *  ------------------
+ * /  如果代码有帮助到你  \
+ * \  也请作者喝杯咖啡吧  /
+ *  ------------------
+ *      \   (__)
+ *       \  /oo|\_______
+ *         (_"_)\  牛码  )\/\
+ *  █████   U   ||-----j/  ███████████     ███████    █████ █████
+ * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███ 
+ *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███  
+ *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████  
+ *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███  
+ *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███ 
+ *  ███████████;░░███████  ███████████  ░░░███████░   █████ █████
+ * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░ 
+ *          ;;;  ███ ░███
+ *          ;;  ░░██████
+ *           ;   ░░░░░░                                       
  */
 
-#include "lybox.h"
+#include "lybox_api.h"
+
+/* ----------------------------------- 队列 ----------------------------------- */
+queue_t *queue_create(uint8_t box_len, uint8_t mbr_size)
+{
+    return lybox_create(box_len, mbr_size, lyboxReadMode_FIFO, false);
+}
+
+uint8_t queue_send(queue_t *queue, void *pval, size_t num)
+{
+    return lybox_send(queue, pval, num);
+}
+
+uint8_t queue_receive(queue_t *queue, void *pbuff, size_t num)
+{
+    return lybox_receive(queue, pbuff, num);
+}
+
+uint8_t queue_peek(queue_t *queue, void *pbuff, size_t num)
+{
+    return lybox_peek(queue, pbuff, num);
+}
+
+void queue_delete(queue_t *queue)
+{
+    lybox_delete(queue);
+}
+
+/* ------------------------------------ 栈 ----------------------------------- */
+stack_t *stack_create(uint8_t box_len, uint8_t mbr_size)
+{
+    return lybox_create(box_len, mbr_size, lyboxReadMode_LIFO_BLOCK, false);
+}
+
+uint8_t stack_push(stack_t *stack, void *pval, size_t num)
+{
+    return lybox_send(stack, pval, num);
+}
+
+uint8_t stack_pop(stack_t *stack, void *pbuff, size_t num)
+{
+    return lybox_receive(stack, pbuff, num);
+}
+
+void stack_delete(stack_t *stack)
+{
+    lybox_delete(stack);
+}
+
+/* ------------------------------------ 流 ----------------------------------- */
+stream_t *stream_create(uint8_t box_len)
+{
+    return lybox_create(box_len, sizeof(byte_t), lyboxReadMode_LIFO_BYTE, true);
+}
+
+stream_t *stream_create_ex(uint8_t box_len, uint8_t mbr_size)
+{
+    return lybox_create(box_len, mbr_size, lyboxReadMode_LIFO_BYTE, true);
+}
+
+uint8_t stream_send(stream_t *stream, void *pval, size_t num)
+{
+    return lybox_send(stream, pval, num);
+}
+
+uint8_t stream_receive(stream_t *stream, void *pbuff, size_t num)
+{
+    return lybox_receive(stream, pbuff, num);
+}
+
+void stream_delete(stream_t *stream)
+{
+    lybox_delete(stream);
+}
+
+/* --------------------------------- 事件/标志组 --------------------------------- */
 
 event_group_t *event_group_create(void)
 {
     // 目前默认8bit位，后续考虑使用宏还是函数进行扩展
-    return lybox_create(lyboxType_QUEUE, 1, sizeof(event_bits_t));
+    return lybox_create(1, sizeof(event_bits_t), lyboxReadMode_FIFO, false);
 }
 
 bool event_group_set(event_group_t *event_group, const event_bits_t bits)
