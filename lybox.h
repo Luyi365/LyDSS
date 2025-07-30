@@ -95,8 +95,9 @@ struct lybox {
 
 lybox_t *lybox_create(enum lyboxType type, uint8_t box_len, uint8_t mbr_size);
 void lybox_delete(lybox_t *lybox);
-bool lybox_send(lybox_t *lybox, void *pval, size_t num);
-bool lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
-bool lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
+void lybox_set_fresh(lybox_t *lybox, bool keep_fresh);
+uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num);
+uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
+uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
 
 #endif /* __LYBOX_H__ */
