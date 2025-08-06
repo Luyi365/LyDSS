@@ -17,8 +17,8 @@ int simple()
 {
     event_group_t *eg = event_group_create();
     event_group_set(eg, EVENT_BIT_0 | EVENT_BIT_2 | EVENT_BIT_3);
-    event_group_clear(eg, EVENT_BIT_2);
-    printf("eg:%d\n", event_group_get(eg));
+    
+    printf("eg:%d\n", event_group_clear(eg, EVENT_BIT_2));
     event_group_delete(eg);
     
     return 0;
