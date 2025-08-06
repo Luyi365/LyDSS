@@ -104,7 +104,7 @@ bool queue_receive(queue_t *queue, void *pbuff)
  */
 uint8_t queue_receive_multi(queue_t *queue, void *pbuff, size_t num)
 {
-    return lybox_receive(queue, pbuff, 1);
+    return lybox_receive(queue, pbuff, num);
 }
 
 /**
