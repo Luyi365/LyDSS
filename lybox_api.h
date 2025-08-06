@@ -4,7 +4,7 @@
  * @brief
  * @date 2025-07-30
  *
- * @copyright Copyright (c) 2024 Luyi365
+ * @copyright Copyright (c) 2025 Luyi365
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,26 +25,8 @@
  * SOFTWARE.
  *
  * @note
- *
- *
- *  ------------------
- * /  如果代码有帮助到你  \
- * \  也请作者喝杯咖啡吧  /
- *  ------------------
- *      \   (__)
- *       \  /oo|\_______
- *         (_"_)\  牛码  )\/\
- *  █████   U   ||-----j/  ███████████     ███████    █████ █████
- * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███ 
- *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███  
- *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████  
- *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███  
- *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███ 
- *  ███████████;░░███████  ███████████  ░░░███████░   █████ █████
- * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░ 
- *          ;;;  ███ ░███
- *          ;;  ░░██████
- *           ;   ░░░░░░                                       
+ * 
+ *                                 
  */
 
 #ifndef __LYBOX_API__
@@ -53,22 +35,30 @@
 #include "lybox.h"
 
 
+/* ----------------------------------- 队列 ----------------------------------- */
 typedef lybox_t queue_t;
-queue_t *queue_create(uint8_t box_len, uint8_t mbr_size);
-uint8_t queue_send(queue_t *queue, void *pval, size_t num);
-uint8_t queue_receive(queue_t *queue, void *pbuff, size_t num);
-uint8_t queue_peek(queue_t *queue, void *pbuff, size_t num);
+queue_t *queue_create(uint8_t queue_len, uint8_t item_size);
+bool queue_send(queue_t *queue, void *pval);
+uint8_t queue_send_multi(queue_t *queue, void *pval, size_t num);
+bool queue_receive(queue_t *queue, void *pbuff);
+uint8_t queue_receive_multi(queue_t *queue, void *pbuff, size_t num);
+bool queue_peek(queue_t *queue, void *pbuff);
+uint8_t queue_peek_multi(queue_t *queue, void *pbuff, size_t num);
 void queue_delete(queue_t *queue);
 
+/* ----------------------------------- 栈 ----------------------------------- */
 typedef lybox_t stack_t;
-stack_t *stack_create(uint8_t box_len, uint8_t mbr_size);
-uint8_t stack_push(stack_t *stack, void *pval, size_t num);
-uint8_t stack_pop(stack_t *stack, void *pbuff, size_t num);
+stack_t *stack_create(uint8_t stack_len, uint8_t item_size);
+bool stack_push(stack_t *stack, void *pval);
+uint8_t stack_push_multi(stack_t *stack, void *pval, size_t num);
+bool stack_pop(stack_t *stack, void *pbuff);
+uint8_t stack_pop_multi(stack_t *stack, void *pbuff, size_t num);
 void stack_delete(stack_t *stack);
 
+/* ----------------------------------- 流 ----------------------------------- */
 typedef lybox_t stream_t;
 typedef uint8_t byte_t;
-stream_t *stream_create(uint8_t box_len);   //默认成员大小为1字节
+stream_t *stream_create(size_t bytes);   //默认成员大小为1字节
 stream_t *stream_create_ex(uint8_t box_len, uint8_t mbr_size);
 uint8_t stream_send(stream_t *stream, void *pval, size_t num);
 uint8_t stream_receive(stream_t *stream, void *pbuff, size_t num);

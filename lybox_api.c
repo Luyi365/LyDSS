@@ -4,7 +4,7 @@
  * @brief
  * @date 2025-07-30
  *
- * @copyright Copyright (c) 2024 Luyi365
+ * @copyright Copyright (c) 2025 Luyi365
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,47 +25,54 @@
  * SOFTWARE.
  *
  * @note
- *
- *
- *  ------------------
- * /  如果代码有帮助到你  \
- * \  也请作者喝杯咖啡吧  /
- *  ------------------
- *      \   (__)
- *       \  /oo|\_______
- *         (_"_)\  牛码  )\/\
- *  █████   U   ||-----j/  ███████████     ███████    █████ █████
- * ░░███    '   ||     || ░░███░░░░░███  ███░░░░░███ ░░███ ░░███ 
- *  ░███    '   █████ ████ ░███    ░███ ███     ░░███ ░░███ ███  
- *  ░███    ;  ░░███ ░███  ░██████████ ░███      ░███  ░░█████  
- *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███░███      ░███   ███░███  
- *  ░███ ~~~~~█;░███ ░███  ░███    ░███░░███     ███   ███ ░░███ 
- *  ███████████;░░███████  ███████████  ░░░███████░   █████ █████
- * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░     ░░░░░░░    ░░░░░ ░░░░░ 
- *          ;;;  ███ ░███
- *          ;;  ░░██████
- *           ;   ░░░░░░                                       
+ * 
+ *                                
  */
 
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
 #include "lybox_api.h"
 
 /* ----------------------------------- 队列 ----------------------------------- */
-queue_t *queue_create(uint8_t box_len, uint8_t mbr_size)
+/**
+ * @brief 创建一个队列
+ * 
+ * @param queue_len 容器长度（最大成员数）
+ * @param item_size 目标大小
+ * @return queue_t* 返回一个队列对象
+ */
+queue_t *queue_create(uint8_t queue_len, uint8_t item_size)
 {
-    return lybox_create(box_len, mbr_size, lyboxReadMode_FIFO, false);
+    return lybox_create(queue_len, item_size, LyboxReadMode_FIFO, false);
 }
 
-uint8_t queue_send(queue_t *queue, void *pval, size_t num)
+bool queue_send(queue_t *queue, void *pval)
+{
+    return !!lybox_send(queue, pval, 1);
+}
+
+uint8_t queue_send_multi(queue_t *queue, void *pval, size_t num)
 {
     return lybox_send(queue, pval, num);
 }
 
-uint8_t queue_receive(queue_t *queue, void *pbuff, size_t num)
+bool queue_receive(queue_t *queue, void *pbuff)
 {
-    return lybox_receive(queue, pbuff, num);
+    return !!lybox_receive(queue, pbuff, 1);
 }
 
-uint8_t queue_peek(queue_t *queue, void *pbuff, size_t num)
+uint8_t queue_receive_multi(queue_t *queue, void *pbuff, size_t num)
+{
+    return lybox_receive(queue, pbuff, 1);
+}
+
+bool queue_peek(queue_t *queue, void *pbuff)
+{
+    return !!lybox_peek(queue, pbuff, 1);
+}
+
+uint8_t queue_peek_multi(queue_t *queue, void *pbuff, size_t num)
 {
     return lybox_peek(queue, pbuff, num);
 }
@@ -76,17 +83,27 @@ void queue_delete(queue_t *queue)
 }
 
 /* ------------------------------------ 栈 ----------------------------------- */
-stack_t *stack_create(uint8_t box_len, uint8_t mbr_size)
+stack_t *stack_create(uint8_t stack_len, uint8_t item_size)
 {
-    return lybox_create(box_len, mbr_size, lyboxReadMode_LIFO_BLOCK, false);
+    return lybox_create(stack_len, item_size, LyboxReadMode_LIFO_BLOCK, false);
 }
 
-uint8_t stack_push(stack_t *stack, void *pval, size_t num)
+bool stack_push(stack_t *stack, void *pval)
+{
+    return !!lybox_send(stack, pval, 1);
+}
+
+uint8_t stack_push_multi(stack_t *stack, void *pval, size_t num)
 {
     return lybox_send(stack, pval, num);
 }
 
-uint8_t stack_pop(stack_t *stack, void *pbuff, size_t num)
+bool stack_pop(stack_t *stack, void *pbuff)
+{
+    return !!lybox_receive(stack, pbuff, 1);
+}
+
+uint8_t stack_pop_multi(stack_t *stack, void *pbuff, size_t num)
 {
     return lybox_receive(stack, pbuff, num);
 }
@@ -97,14 +114,14 @@ void stack_delete(stack_t *stack)
 }
 
 /* ------------------------------------ 流 ----------------------------------- */
-stream_t *stream_create(uint8_t box_len)
+stream_t *stream_create(size_t bytes)
 {
-    return lybox_create(box_len, sizeof(byte_t), lyboxReadMode_LIFO_BYTE, true);
+    return lybox_create(bytes, sizeof(byte_t), LyboxReadMode_LIFO_BYTE, true);
 }
 
-stream_t *stream_create_ex(uint8_t box_len, uint8_t mbr_size)
+stream_t *stream_create_ex(uint8_t stream_len, uint8_t mbr_size)
 {
-    return lybox_create(box_len, mbr_size, lyboxReadMode_LIFO_BYTE, true);
+    return lybox_create(stream_len, mbr_size, LyboxReadMode_LIFO_BYTE, true);
 }
 
 uint8_t stream_send(stream_t *stream, void *pval, size_t num)
@@ -126,8 +143,7 @@ void stream_delete(stream_t *stream)
 
 event_group_t *event_group_create(void)
 {
-    // 目前默认8bit位，后续考虑使用宏还是函数进行扩展
-    return lybox_create(1, sizeof(event_bits_t), lyboxReadMode_FIFO, false);
+    return lybox_create(1, sizeof(event_bits_t), LyboxReadMode_FIFO, false);
 }
 
 bool event_group_set(event_group_t *event_group, const event_bits_t bits)
