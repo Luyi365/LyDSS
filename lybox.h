@@ -64,8 +64,8 @@ typedef struct lybox lybox_t;
  */
 typedef enum LyboxReadMode {
     LyboxReadMode_FIFO,          ///< 先出先进
-    LyboxReadMode_LIFO_BYTE,     ///< 后进先出（字节）
-    LyboxReadMode_LIFO_BLOCK,    ///< 后进先出（块）
+    LyboxReadMode_LIFO_UNIT,     ///< 后进先出（以成员大小为单位）
+    LyboxReadMode_LIFO_BLOCK,    ///< 后进先出（以块大小为单位）
 } LyboxReadMode_t;
 
 struct lybox {
