@@ -17,44 +17,45 @@
 
 int queue_base_type()
 {
+    printf("Start queue api test...\n");
+
     int temp = 0;
     
     queue_t *queue_handle = queue_create(QUEUE_SIZE, sizeof(int));
 
-    printf("Start queue api test...\n");
     temp = 0xa55a;
-    printf("Send value: 0x%x\n", temp);
+    printf("Send value1: 0x%x\n", temp);
     queue_send(queue_handle, &temp);
     temp = 0x5aa5;
-    printf("Send value: 0x%x\n", temp);
+    printf("Send value2: 0x%x\n", temp);
     queue_send(queue_handle, &temp);
 
     temp = 0;
     queue_receive(queue_handle, &temp);
-    printf("Receive value: 0x%x\n", temp);
+    printf("Receive value1: 0x%x\n", temp);
     queue_receive(queue_handle, &temp);
-    printf("Receive value: 0x%x\n", temp);
+    printf("Receive value2: 0x%x\n", temp);
 
-    int send_buff[QUEUE_SIZE] = { 0 }, recv_buff[QUEUE_SIZE] = { 0 };
+    int send_buf[QUEUE_SIZE] = { 0 }, recv_buf[QUEUE_SIZE] = { 0 };
     for(int i = 0; i < QUEUE_SIZE; i++) {
-        send_buff[i] = i;
+        send_buf[i] = i;
     }
 
-    printf("Send mult-value: ");
+    printf("Send multi-value: ");
     for(int i = 0; i < QUEUE_SIZE; i++) {
-        printf("%d ", send_buff[i]);
+        printf("%d ", send_buf[i]);
     }
-    queue_send_multi(queue_handle, send_buff, QUEUE_SIZE);
+    queue_send_multi(queue_handle, send_buf, QUEUE_SIZE);
     printf("\n");
-    queue_receive_multi(queue_handle, recv_buff, QUEUE_SIZE);
-    printf("Receive mult-value: ");
+    queue_receive_multi(queue_handle, recv_buf, QUEUE_SIZE);
+    printf("Receive multi-value: ");
     for(int i = 0; i < QUEUE_SIZE; i++) {
-        printf("%d ", recv_buff[i]);
+        printf("%d ", recv_buf[i]);
     }
     printf("\n");
 
     for(int i = 0; i < QUEUE_SIZE; i++){
-        if(recv_buff[i] != send_buff[i]) {
+        if(recv_buf[i] != send_buf[i]) {
             printf("Queue api test failed!\n");
             return 0;
         }

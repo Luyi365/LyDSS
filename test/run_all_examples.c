@@ -19,11 +19,18 @@ int main()
 
     /** ./examples/simple.c */
     extern int simple();
-    // status = simple();
+    status = simple();
+    printf("\n");
 
     /** ./examples/queue_base_type.c */
     extern int queue_base_type();
     status = queue_base_type();
+    printf("\n");
+
+    /** ./examples/stack_base_type.c */
+    extern int stack_base_type();
+    status = stack_base_type();
+    printf("\n");
 
     return 0;
 }

@@ -1,12 +1,12 @@
 /**
  * @file simple.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief 
+ * @brief
  * @date 2025-07-16
- * 
+ *
  * @copyright Copyright (c) 2025
- * 
- * @note 
+ *
+ * @note
  * Matters related to this document.
  */
 
@@ -15,11 +15,18 @@
 
 int simple()
 {
-    event_group_t *eg = event_group_create();
-    event_group_set(eg, EVENT_BIT_0 | EVENT_BIT_2 | EVENT_BIT_3);
-    
-    printf("eg:%d\n", event_group_clear(eg, EVENT_BIT_2));
-    event_group_delete(eg);
-    
+    lybox_t *handle = lybox_create(10, sizeof(int), LyboxReadMode_LIFO_BLOCK, false);
+
+    int data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    lybox_send(handle, data, 8);
+
+    lybox_receive(handle, data, 8);
+
+    for(int i = 0; i < 8; i++)
+    {
+        printf("%d ", data[i]);
+    }
+    printf("\n");
+
     return 0;
 }
