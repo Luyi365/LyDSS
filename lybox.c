@@ -56,7 +56,7 @@
 #include "lybox.h"
 
 /// @brief 创建一个容器
-lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mode, bool fresh)
+lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mode)
 {
     lybox_t *lybox = malloc(sizeof(lybox_t));
 
@@ -67,7 +67,6 @@ lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mo
     lybox->read_index = 0;
 
     lybox->read_mode = r_mode;
-    lybox->keep_fresh = fresh;
 
     lybox->box = calloc(box_len, mbr_size);
 
@@ -82,20 +81,17 @@ void lybox_delete(lybox_t *lybox)
     lybox = NULL;
 }
 
-/// @brief 设置容器数据覆盖方式
-void lybox_set_fresh(lybox_t *lybox, bool fresh)
-{
-    lybox->keep_fresh = fresh;
-}
-
 /// @brief 向容器中存入数据
-uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num)
+uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode)
 {
     uint8_t to_write = 0;
     uint8_t offset = 0;
 
     // 实际写入数量
-    if(lybox->keep_fresh) {
+    if(w_mode == LyboxWriteMode_OVERWRITE) {
+        to_write = (num > lybox->len) ? lybox->len : num;
+    }
+    else if(w_mode == LyboxWriteMode_FRESH) {
         to_write = (num > lybox->len) ? lybox->len : num;
         if(num > lybox->len) {
             offset = (num - to_write) * lybox->member_size;
@@ -114,16 +110,38 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num)
         memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, to_write * lybox->member_size);
     }
     else {
-        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, first_space * lybox->member_size);
-        memcpy(lybox->box, pval + offset + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
+        if(w_mode == LyboxWriteMode_OVERWRITE) {
+            // 先填充未跨越缓冲区部分
+            memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, first_space * lybox->member_size);
+            // 再填充跨越缓冲区部分，分三种情况
+            if(to_write - first_space <= lybox->read_index) { // 剩余部分不超出容器剩余空间
+                memcpy(lybox->box, pval + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
+            }
+            else if(to_write - first_space <= lybox->read_index * 2) { // 剩余部分超出容器剩余空间，但不跨越缓冲区头部
+                memcpy(lybox->box, pval + first_space * lybox->member_size, lybox->read_index * lybox->member_size);
+                // 这个时候空间必然处于填满状态
+                memcpy(lybox->box + (lybox->read_index - (to_write - first_space - lybox->read_index)) * lybox->member_size, pval + (first_space + lybox->read_index) * lybox->member_size, (to_write - first_space - lybox->read_index) * lybox->member_size);
+            }
+            else {  // 剩余部分超出容器剩余空间，且跨越缓冲区头部
+                memcpy(lybox->box, pval + first_space * lybox->member_size, lybox->read_index * lybox->member_size);
+                // 这个时候空间必然处于填满状态
+                memcpy(lybox->box + (lybox->len - (to_write - (first_space + 2 * lybox->read_index))) * lybox->member_size, pval + (first_space + lybox->read_index) * lybox->member_size, (to_write - (first_space + 2 * lybox->read_index)) * lybox->member_size);
+                memcpy(lybox->box, pval + (first_space + lybox->read_index + (to_write - (first_space + 2 * lybox->read_index))) * lybox->member_size, lybox->read_index * lybox->member_size);
+            }
+        }
+        else {
+            memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, first_space * lybox->member_size);
+            memcpy(lybox->box, pval + offset + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
+        }
     }
 
     if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {
         lybox->read_index = (uint8_t)(lybox->write_index + to_write - 1) % lybox->len;
     }
-    else if(lybox->count + to_write > lybox->len) {
+    else if(lybox->count + to_write > lybox->len && w_mode == LyboxWriteMode_FRESH) {
         lybox->read_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
     }
+
     lybox->write_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
     lybox->count = (to_write + lybox->count) > lybox->len ? lybox->len : to_write + lybox->count;
 

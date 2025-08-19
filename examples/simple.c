@@ -15,16 +15,21 @@
 
 int simple()
 {
-    lybox_t *handle = lybox_create(10, sizeof(int), LyboxReadMode_LIFO_BLOCK, false);
+    lybox_t *handle = lybox_create(10, sizeof(int), LyboxReadMode_FIFO);
 
     int data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    lybox_send(handle, data, 8);
+    int data2[10] = {0};
+    lybox_send(handle, data, 2, LyboxWriteMode_DEFAULT);
+    lybox_receive(handle, data, 2);
 
-    lybox_receive(handle, data, 8);
+    lybox_send(handle, data, 7, LyboxWriteMode_OVERWRITE);
+    lybox_send(handle, data, 8, LyboxWriteMode_OVERWRITE);
 
-    for(int i = 0; i < 8; i++)
+    lybox_receive(handle, data2, handle->count);
+
+    for(int i = 0; i < 10; i++)
     {
-        printf("%d ", data[i]);
+        printf("%d ", data2[i]);
     }
     printf("\n");
 

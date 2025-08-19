@@ -59,6 +59,16 @@
 /* LyBOX */
 typedef struct lybox lybox_t;
 
+/** @note fresh不等于overwrite(覆盖)，例如一个满数组array[3]，要一次存入7个数据[0,1,2,3,4,5,6]
+ *       使用overwrite则array = [0,1,2]，而fresh则是array = [4,5,6]
+ *       overwrite更像是铺上去，而fresh则像是卷动。
+ */
+typedef enum LyboxWriteMode {
+    LyboxWriteMode_DEFAULT,      ///< 满了则不能再写入
+    LyboxWriteMode_OVERWRITE,    ///< 满了则从尾部以覆盖的方式写入
+    LyboxWriteMode_FRESH,        ///< 满了则从头部以保持数据最新的方式写入
+} LyboxWriteMode_t;
+
 /** @note 对于环形缓冲来说，追赶的方式不区分流和块，因为这两种方式最后得到的结果是一样的；
  * 但追赶的方式固定为FIFO，很多时候也需要LIFO，因此需要引进栈的方式（这个栈是通过相向而行的环形缓冲来实现的）。
  */
@@ -77,7 +87,6 @@ struct lybox {
     uint8_t read_index;     ///< 读索引（指向下一个可读取的位置索引）
 
     LyboxReadMode_t read_mode;  ///< 读取模式
-    bool keep_fresh;    ///< 是否覆盖写入
 
     void *box;      ///< 容器
 };
@@ -88,10 +97,9 @@ struct lybox {
  * @param box_len 容器长度（最大成员个数）
  * @param member_size 单个成员大小
  * @param r_mode 读取模式
- * @param fresh 是否保持数据新鲜
  * @return lybox_t* 返回一个容器对象
  */
-lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mode, bool fresh);
+lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mode);
 
 /**
  * @brief 销毁容器
@@ -101,22 +109,17 @@ lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mo
 void lybox_delete(lybox_t *lybox);
 
 /**
- * @brief 设置容器数据覆盖方式
- * 
- * @param lybox 容器对象
- * @param fresh 是否保持数据新鲜
- */
-void lybox_set_fresh(lybox_t *lybox, bool fresh);
-
-/**
  * @brief 向容器中存入数据
  * 
  * @param lybox 容器对象
  * @param pval 数据指针
  * @param num 数据个数
+ * @param w_mode 写入模式
  * @return uint8_t 返回实际存入的数量
+ * 
+
  */
-uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num);
+uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
 
 /**
  * @brief 从容器中取出数据

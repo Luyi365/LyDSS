@@ -76,7 +76,7 @@ bool queue_send(queue_t *queue, void *pval);
 uint8_t queue_send_multi(queue_t *queue, void *pval, size_t num);
 
 /**
- * @brief 向队列接收单个数据
+ * @brief 从队列接收单个数据
  * 
  * @param queue 队列对象
  * @param pbuff 缓存指针
@@ -85,7 +85,7 @@ uint8_t queue_send_multi(queue_t *queue, void *pval, size_t num);
 bool queue_receive(queue_t *queue, void *pbuff);
 
 /**
- * @brief 向队列接收多个数据
+ * @brief 从队列接收多个数据
  * 
  * @param queue 队列对象
  * @param pbuff 缓存指针
@@ -153,7 +153,7 @@ bool stack_push(stack_t *stack, void *pval);
 uint8_t stack_push_multi(stack_t *stack, void *pval, size_t num);
 
 /**
- * @brief 向栈弹出单个数据
+ * @brief 从栈弹出单个数据
  * 
  * @param stack 栈对象
  * @param pbuff 缓存指针
@@ -162,7 +162,7 @@ uint8_t stack_push_multi(stack_t *stack, void *pval, size_t num);
 bool stack_pop(stack_t *stack, void *pbuff);
 
 /**
- * @brief 向栈弹出多个数据
+ * @brief 从栈弹出多个数据
  * 
  * @param stack 栈对象
  * @param pval 数据指针
@@ -174,7 +174,7 @@ uint8_t stack_pop_multi(stack_t *stack, void *pbuff, size_t num);
 
 /* ----------------------------------- 流 ----------------------------------- */
 typedef lybox_t stream_t;
-typedef uint8_t byte_t;
+typedef uint8_t byte_t;     ///< 流默认以字节为单位
 
 /**
  * @brief 创建一个流
