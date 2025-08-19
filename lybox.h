@@ -93,7 +93,7 @@ struct lybox {
 
 /**
  * @brief 创建一个容器
- * 
+ *
  * @param box_len 容器长度（最大成员个数）
  * @param member_size 单个成员大小
  * @param r_mode 读取模式
@@ -103,27 +103,34 @@ lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mo
 
 /**
  * @brief 销毁容器
- * 
+ *
  * @param lybox 容器对象
  */
 void lybox_delete(lybox_t *lybox);
 
 /**
  * @brief 向容器中存入数据
- * 
+ *
  * @param lybox 容器对象
  * @param pval 数据指针
  * @param num 数据个数
  * @param w_mode 写入模式
  * @return uint8_t 返回实际存入的数量
  * 
-
+ * @note 如果不是很了解枚举"LyboxWriteMode_OVERWRITE"的影响，推荐使用该枚举时写入数量限制为1，否则可能造成数据紊乱。
  */
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
 
+#define LYBOX_SEND_DEFAULT(lybox, pval, num) \
+    lybox_send(lybox, pval, num, LyboxWriteMode_DEFAULT)
+#define LYBOX_SEND_OVERWRITE(lybox, pval, num) \
+    lybox_send(lybox, pval, num, LyboxWriteMode_OVERWRITE)
+#define LYBOX_SEND_FRESH(lybox, pval, num) \
+    lybox_send(lybox, pval, num, LyboxWriteMode_FRESH)
+
 /**
  * @brief 从容器中取出数据
- * 
+ *
  * @param lybox 容器对象
  * @param pbuff 缓存指针
  * @param num 数据个数
@@ -133,12 +140,12 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
 
 /**
  * @brief 预读容器中的数据
- * 
+ *
  * @param lybox 容器对象
  * @param pbuff 缓存指针
  * @param num 数据个数
  * @return uint8_t 返回实际读到的数量
- * 
+ *
  * @note peek和receive本质的区别在于peek不会移动指针位置
  */
 uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
