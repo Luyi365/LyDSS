@@ -63,8 +63,8 @@ lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mo
     lybox->len = box_len;
     lybox->count = 0;
     lybox->member_size = mbr_size;
-    lybox->write_index = 0;
-    lybox->read_index = 0;
+    lybox->front_index = (uint8_t)-1;
+    lybox->rear_index = (uint8_t)-1;
 
     lybox->read_mode = r_mode;
 
@@ -77,6 +77,7 @@ lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mo
 void lybox_delete(lybox_t *lybox)
 {
     free(lybox->box);
+    lybox->box = NULL;
     free(lybox);
     lybox = NULL;
 }
@@ -85,17 +86,23 @@ void lybox_delete(lybox_t *lybox)
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode)
 {
     uint8_t to_write = 0;
-    uint8_t offset = 0;
+    uint8_t offset_idx = 0; // 读取pval数据起始偏移量，只用于FRESH模式，来避免数据重复计算
+                            // 例如：容器长度5，想写入9个成员
+                            // 因为容器实际只能装下5个成员，9个成员中4个是多余的，需要跳过
+                            // 此时offset_idx = 9 - 5 = 4   [4]就是写入数据的起始索引偏移量
+    uint8_t write_idx = lybox->rear_index + 1;
+    if(write_idx == lybox->len) write_idx = 0;
 
     // 实际写入数量
-    if(w_mode == LyboxWriteMode_OVERWRITE) {
-        to_write = (num > lybox->len) ? lybox->len : num;
-    }
-    else if(w_mode == LyboxWriteMode_FRESH) {
+    if(w_mode == LyboxWriteMode_FRESH) {   // 因为采用避免重复计算的方式，所以只有FRESH模式在写入时的写入位置与尾索引不同
         to_write = (num > lybox->len) ? lybox->len : num;
         if(num > lybox->len) {
-            offset = (num - to_write) * lybox->member_size;
-            lybox->write_index = (lybox->write_index - (lybox->len - (num % lybox->len))) % lybox->len;
+            offset_idx = num - to_write;
+            // 这个时候已经假定num > lybox->len，所以一定会覆盖
+            // 例如容器长度5，想写入19个成员
+            // tail_index会在之前的基础上前进19个位置
+            // 因为是环形的，所以最后需要%len
+            write_idx = (write_idx + num) % lybox->len;
         }
     }
     else {
@@ -105,45 +112,24 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mo
     if(to_write <= 0) return 0;
 
     // 分两种情况拷贝（是否跨越缓冲区末尾）
-    uint8_t first_space = lybox->len - lybox->write_index;
+    uint8_t first_space = lybox->len - write_idx;
     if(to_write <= first_space) {
-        memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, to_write * lybox->member_size);
+        memcpy(lybox->box + write_idx * lybox->member_size, pval + offset_idx * lybox->member_size, to_write * lybox->member_size);
     }
     else {
-        if(w_mode == LyboxWriteMode_OVERWRITE) {
-            // 先填充未跨越缓冲区部分
-            memcpy(lybox->box + lybox->write_index * lybox->member_size, pval, first_space * lybox->member_size);
-            // 再填充跨越缓冲区部分，分三种情况
-            if(to_write - first_space <= lybox->read_index) { // 剩余部分不超出容器剩余空间
-                memcpy(lybox->box, pval + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
-            }
-            else if(to_write - first_space <= lybox->read_index * 2) { // 剩余部分超出容器剩余空间，但不跨越缓冲区头部
-                memcpy(lybox->box, pval + first_space * lybox->member_size, lybox->read_index * lybox->member_size);
-                // 这个时候空间必然处于填满状态
-                memcpy(lybox->box + (lybox->read_index - (to_write - first_space - lybox->read_index)) * lybox->member_size, pval + (first_space + lybox->read_index) * lybox->member_size, (to_write - first_space - lybox->read_index) * lybox->member_size);
-            }
-            else {  // 剩余部分超出容器剩余空间，且跨越缓冲区头部
-                memcpy(lybox->box, pval + first_space * lybox->member_size, lybox->read_index * lybox->member_size);
-                // 这个时候空间必然处于填满状态
-                memcpy(lybox->box + (lybox->len - (to_write - (first_space + 2 * lybox->read_index))) * lybox->member_size, pval + (first_space + lybox->read_index) * lybox->member_size, (to_write - (first_space + 2 * lybox->read_index)) * lybox->member_size);
-                memcpy(lybox->box, pval + (first_space + lybox->read_index + (to_write - (first_space + 2 * lybox->read_index))) * lybox->member_size, lybox->read_index * lybox->member_size);
-            }
-        }
-        else {
-            memcpy(lybox->box + lybox->write_index * lybox->member_size, pval + offset, first_space * lybox->member_size);
-            memcpy(lybox->box, pval + offset + first_space * lybox->member_size, (to_write - first_space) * lybox->member_size);
-        }
+        memcpy(lybox->box + write_idx * lybox->member_size, pval + offset_idx * lybox->member_size, first_space * lybox->member_size);
+        memcpy(lybox->box, pval + (offset_idx + first_space) * lybox->member_size, (to_write - first_space) * lybox->member_size);
     }
 
-    if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {
-        lybox->read_index = (uint8_t)(lybox->write_index + to_write - 1) % lybox->len;
-    }
-    else if(lybox->count + to_write > lybox->len && w_mode == LyboxWriteMode_FRESH) {
-        lybox->read_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
-    }
+    lybox->rear_index = (uint8_t)(write_idx + to_write - 1) % lybox->len;
 
-    lybox->write_index = (uint8_t)(lybox->write_index + to_write) % lybox->len;
-    lybox->count = (to_write + lybox->count) > lybox->len ? lybox->len : to_write + lybox->count;
+    if(lybox->count + to_write > lybox->len && w_mode == LyboxWriteMode_FRESH) {
+        lybox->front_index = (uint8_t)(write_idx + to_write) % lybox->len;
+        lybox->count = lybox->len;
+    }
+    else {
+        lybox->count += to_write;
+    }
 
     return to_write;
 }
@@ -153,12 +139,11 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
 {
     uint8_t to_read = lybox_peek(lybox, pbuff, num);
 
-    if(lybox->read_mode == LyboxReadMode_FIFO) {
-        lybox->read_index = (uint8_t)(lybox->read_index + to_read) % lybox->len;
+    if(lybox->read_mode == LyboxReadMode_FIFO) {    // FIFO模式下，读取位置从头开始
+        lybox->front_index = (uint8_t)(lybox->front_index + to_read) % lybox->len;
     }
-    else if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {
-        lybox->write_index = (uint8_t)(lybox->read_index - to_read + 1) % lybox->len;
-        lybox->read_index = (uint8_t)(lybox->read_index - to_read) % lybox->len;
+    else if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {  // LIFO模式下，读取位置从尾开始
+        lybox->rear_index = (uint8_t)(lybox->front_index - to_read) % lybox->len;
     }
 
     return to_read;
@@ -173,19 +158,21 @@ uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
     if(to_read <= 0 || num > lybox->count) return 0;
 
     if(lybox->read_mode == LyboxReadMode_FIFO) {
-        uint8_t first_space = lybox->len - lybox->read_index;
+        uint8_t read_idx = lybox->front_index == (uint8_t)-1 ? 0 : lybox->front_index;
+        uint8_t first_space = lybox->len - read_idx;   // 首页剩余可读取区域
         if(to_read <= first_space) {
-            memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, to_read * lybox->member_size);
+            memcpy(pbuff, lybox->box + read_idx * lybox->member_size, to_read * lybox->member_size);
         }
         else {
-            memcpy(pbuff, lybox->box + lybox->read_index * lybox->member_size, first_space * lybox->member_size);
+            memcpy(pbuff, lybox->box + read_idx * lybox->member_size, first_space * lybox->member_size);
             memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
         }
     }
     else if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {
-        uint8_t first_space = lybox->read_index + 1;
+        uint8_t read_idx = lybox->rear_index == (uint8_t)-1 ? 0 : lybox->rear_index;
+        uint8_t first_space = lybox->rear_index == (uint8_t)-1 ? lybox->len : (lybox->rear_index + 1);   // 首页剩余可读取区域
         if(to_read <= first_space) {
-            memcpy(pbuff, lybox->box + (lybox->read_index - (to_read - 1)) * lybox->member_size, to_read * lybox->member_size);
+            memcpy(pbuff, lybox->box + (read_idx - (to_read - 1)) * lybox->member_size, to_read * lybox->member_size);
         }
         else {
             memcpy(pbuff, lybox->box + (lybox->len - to_read + first_space) * lybox->member_size, (to_read - first_space) * lybox->member_size);

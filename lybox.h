@@ -59,13 +59,8 @@
 /* LyBOX */
 typedef struct lybox lybox_t;
 
-/** @note fresh不等于overwrite(覆盖)，例如一个满数组array[3]，要一次存入7个数据[0,1,2,3,4,5,6]
- *       使用overwrite则array = [0,1,2]，而fresh则是array = [4,5,6]
- *       overwrite更像是铺上去，而fresh则像是卷动。
- */
 typedef enum LyboxWriteMode {
     LyboxWriteMode_DEFAULT,      ///< 满了则不能再写入
-    LyboxWriteMode_OVERWRITE,    ///< 满了则从尾部以覆盖的方式写入
     LyboxWriteMode_FRESH,        ///< 满了则从头部以保持数据最新的方式写入
 } LyboxWriteMode_t;
 
@@ -82,9 +77,9 @@ struct lybox {
     uint8_t len;    ///< 容器长度
     size_t count;   ///< 容器中成员实际数量
 
-    uint8_t member_size;    ///< 单个成员的大小（单位：字节）
-    uint8_t write_index;    ///< 写索引（指向下一个可写入的位置索引）
-    uint8_t read_index;     ///< 读索引（指向下一个可读取的位置索引）
+    uint8_t member_size; ///< 单个成员的大小（单位：字节）
+    void *p_head;     ///< 头索引
+    void *p_tail;     ///< 尾索引
 
     LyboxReadMode_t read_mode;  ///< 读取模式
 
@@ -149,5 +144,43 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
  * @note peek和receive本质的区别在于peek不会移动指针位置
  */
 uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
+
+
+/**
+ * @brief 容器中成员地址转换为索引值
+ *
+ * @param lybox 容器对象
+ * @param addr 成员地址
+ * @return size_t 返回成员的索引值
+ *
+ * @note 该函数中的地址只能是容器中成员的地址，不能是其他地址，否则会导致未定义行为。
+ *       推荐直接使用提供的宏函数来获取成员索引。
+ */
+static inline size_t lybox_address_to_index(lybox_t *lybox, void *addr)
+{
+    if(addr == NULL || (uintptr_t)addr < (uintptr_t)lybox->box || (uintptr_t)addr >= (uintptr_t)lybox->box + lybox->len * lybox->member_size) {
+        return (size_t)(-1);
+    }
+    return (size_t)(((uintptr_t)addr - (uintptr_t)lybox->box) / lybox->member_size);    //TODO 这里是否应该做一个倍数检查
+}
+
+#define LYBOX_HEAD_INDEX(lybox) \
+    lybox_address_to_index(lybox, lybox->p_head)
+#define LYBOX_TAIL_INDEX(lybox) \
+    lybox_address_to_index(lybox, lybox->p_tail)
+
+/**
+ * @brief 容器中成员索引值转换为地址
+ *
+ * @param lybox 容器对象
+ * @param index 索引值
+ * @return void* 返回成员的地址
+ */
+static inline void *lybox_index_to_address(lybox_t *lybox, size_t index)
+{
+    if(index >= lybox->len) return NULL;
+    return (void*)(lybox->box + index * lybox->member_size);
+}
+
 
 #endif /* __LYBOX_H__ */
