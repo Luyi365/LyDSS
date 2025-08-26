@@ -56,17 +56,15 @@
 #include "lybox.h"
 
 /// @brief 创建一个容器
-lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mode)
+lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size)
 {
     lybox_t *lybox = malloc(sizeof(lybox_t));
 
     lybox->len = box_len;
     lybox->count = 0;
     lybox->member_size = mbr_size;
-    lybox->front_index = (uint8_t)-1;
-    lybox->rear_index = (uint8_t)-1;
-
-    lybox->read_mode = r_mode;
+    lybox->head_index = 0;
+    lybox->tail_index = -1;
 
     lybox->box = calloc(box_len, mbr_size);
 
@@ -90,9 +88,8 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mo
                             // 例如：容器长度5，想写入9个成员
                             // 因为容器实际只能装下5个成员，9个成员中4个是多余的，需要跳过
                             // 此时offset_idx = 9 - 5 = 4   [4]就是写入数据的起始索引偏移量
-    uint8_t write_idx = lybox->rear_index + 1;
-    if(write_idx == lybox->len) write_idx = 0;
-
+    uint8_t write_idx = lybox->tail_index + 1;
+    
     // 实际写入数量
     if(w_mode == LyboxWriteMode_FRESH) {   // 因为采用避免重复计算的方式，所以只有FRESH模式在写入时的写入位置与尾索引不同
         to_write = (num > lybox->len) ? lybox->len : num;
@@ -110,6 +107,7 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mo
     }
 
     if(to_write <= 0) return 0;
+//    lybox->head_index = lybox->head_index == -1 ? 0 : lybox->head_index;  // 对头索引初始化
 
     // 分两种情况拷贝（是否跨越缓冲区末尾）
     uint8_t first_space = lybox->len - write_idx;
@@ -121,29 +119,29 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mo
         memcpy(lybox->box, pval + (offset_idx + first_space) * lybox->member_size, (to_write - first_space) * lybox->member_size);
     }
 
-    lybox->rear_index = (uint8_t)(write_idx + to_write - 1) % lybox->len;
+    lybox->tail_index = (uint8_t)(write_idx + to_write - 1) % lybox->len;
 
     if(lybox->count + to_write > lybox->len && w_mode == LyboxWriteMode_FRESH) {
-        lybox->front_index = (uint8_t)(write_idx + to_write) % lybox->len;
+        lybox->head_index = (uint8_t)(lybox->tail_index + to_write + 1) % lybox->len;
         lybox->count = lybox->len;
     }
     else {
         lybox->count += to_write;
     }
-
+    
     return to_write;
 }
 
 /// @brief 从容器中取出数据
-uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
+uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode)
 {
-    uint8_t to_read = lybox_peek(lybox, pbuff, num);
+    uint8_t to_read = lybox_peek(lybox, pbuff, num, r_mode);
 
-    if(lybox->read_mode == LyboxReadMode_FIFO) {    // FIFO模式下，读取位置从头开始
-        lybox->front_index = (uint8_t)(lybox->front_index + to_read) % lybox->len;
+    if(r_mode == LyboxReadMode_FIFO) {    // FIFO模式下，读取位置从头开始
+        lybox->head_index = (uint8_t)(lybox->head_index + to_read) % lybox->len;
     }
-    else if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {  // LIFO模式下，读取位置从尾开始
-        lybox->rear_index = (uint8_t)(lybox->front_index - to_read) % lybox->len;
+    else if(r_mode == LyboxReadMode_LIFO_UNIT || r_mode == LyboxReadMode_LIFO_BLOCK) {  // LIFO模式下，读取位置从尾开始
+        lybox->tail_index = (uint8_t)(lybox->tail_index - to_read) % lybox->len;
     }
 
     return to_read;
@@ -151,14 +149,14 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num)
 
 /// @brief 预读容器中的数据
 /// @note peek和receive本质的区别在于peek不会移动指针位置
-uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
+uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode)
 {
     uint8_t to_read = (num > lybox->count) ? lybox->count : num;
 
     if(to_read <= 0 || num > lybox->count) return 0;
 
-    if(lybox->read_mode == LyboxReadMode_FIFO) {
-        uint8_t read_idx = lybox->front_index == (uint8_t)-1 ? 0 : lybox->front_index;
+    if(r_mode == LyboxReadMode_FIFO) {
+        uint8_t read_idx = lybox->head_index;  // 这里不用担心head_index为-1，因为前面会判断lybox->count是否为0
         uint8_t first_space = lybox->len - read_idx;   // 首页剩余可读取区域
         if(to_read <= first_space) {
             memcpy(pbuff, lybox->box + read_idx * lybox->member_size, to_read * lybox->member_size);
@@ -168,9 +166,9 @@ uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
             memcpy(pbuff + first_space * lybox->member_size, lybox->box, (to_read - first_space) * lybox->member_size);
         }
     }
-    else if(lybox->read_mode == LyboxReadMode_LIFO_UNIT || lybox->read_mode == LyboxReadMode_LIFO_BLOCK) {
-        uint8_t read_idx = lybox->rear_index == (uint8_t)-1 ? 0 : lybox->rear_index;
-        uint8_t first_space = lybox->rear_index == (uint8_t)-1 ? lybox->len : (lybox->rear_index + 1);   // 首页剩余可读取区域
+    else if(r_mode == LyboxReadMode_LIFO_UNIT || r_mode == LyboxReadMode_LIFO_BLOCK) {
+        uint8_t read_idx = lybox->tail_index;
+        uint8_t first_space = read_idx + 1;   // 首页剩余可读取区域
         if(to_read <= first_space) {
             memcpy(pbuff, lybox->box + (read_idx - (to_read - 1)) * lybox->member_size, to_read * lybox->member_size);
         }
@@ -181,7 +179,7 @@ uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num)
     }
 
     // 使用双指针交换成员顺序
-    if(lybox->read_mode == LyboxReadMode_LIFO_UNIT) {
+    if(r_mode == LyboxReadMode_LIFO_UNIT) {
         void *left = pbuff;
         void *right = left + (num - 1) * lybox->member_size;
         void *temp = malloc(lybox->member_size);

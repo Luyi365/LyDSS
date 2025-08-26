@@ -78,10 +78,8 @@ struct lybox {
     size_t count;   ///< 容器中成员实际数量
 
     uint8_t member_size; ///< 单个成员的大小（单位：字节）
-    void *p_head;     ///< 头索引
-    void *p_tail;     ///< 尾索引
-
-    LyboxReadMode_t read_mode;  ///< 读取模式
+    uint8_t head_index;     ///< 头索引    假定-1是无效值
+    uint8_t tail_index;     ///< 尾索引    假定-1是无效值
 
     void *box;      ///< 容器
 };
@@ -94,7 +92,7 @@ struct lybox {
  * @param r_mode 读取模式
  * @return lybox_t* 返回一个容器对象
  */
-lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size, enum LyboxReadMode r_mode);
+lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size);
 
 /**
  * @brief 销毁容器
@@ -111,15 +109,11 @@ void lybox_delete(lybox_t *lybox);
  * @param num 数据个数
  * @param w_mode 写入模式
  * @return uint8_t 返回实际存入的数量
- * 
- * @note 如果不是很了解枚举"LyboxWriteMode_OVERWRITE"的影响，推荐使用该枚举时写入数量限制为1，否则可能造成数据紊乱。
  */
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
 
 #define LYBOX_SEND_DEFAULT(lybox, pval, num) \
     lybox_send(lybox, pval, num, LyboxWriteMode_DEFAULT)
-#define LYBOX_SEND_OVERWRITE(lybox, pval, num) \
-    lybox_send(lybox, pval, num, LyboxWriteMode_OVERWRITE)
 #define LYBOX_SEND_FRESH(lybox, pval, num) \
     lybox_send(lybox, pval, num, LyboxWriteMode_FRESH)
 
@@ -129,9 +123,10 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mo
  * @param lybox 容器对象
  * @param pbuff 缓存指针
  * @param num 数据个数
+ * @param r_mode 读取模式
  * @return uint8_t 返回实际取出的数量
  */
-uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
+uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
 
 /**
  * @brief 预读容器中的数据
@@ -139,48 +134,12 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num);
  * @param lybox 容器对象
  * @param pbuff 缓存指针
  * @param num 数据个数
+ * @param r_mode 读取模式
  * @return uint8_t 返回实际读到的数量
  *
  * @note peek和receive本质的区别在于peek不会移动指针位置
  */
-uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num);
-
-
-/**
- * @brief 容器中成员地址转换为索引值
- *
- * @param lybox 容器对象
- * @param addr 成员地址
- * @return size_t 返回成员的索引值
- *
- * @note 该函数中的地址只能是容器中成员的地址，不能是其他地址，否则会导致未定义行为。
- *       推荐直接使用提供的宏函数来获取成员索引。
- */
-static inline size_t lybox_address_to_index(lybox_t *lybox, void *addr)
-{
-    if(addr == NULL || (uintptr_t)addr < (uintptr_t)lybox->box || (uintptr_t)addr >= (uintptr_t)lybox->box + lybox->len * lybox->member_size) {
-        return (size_t)(-1);
-    }
-    return (size_t)(((uintptr_t)addr - (uintptr_t)lybox->box) / lybox->member_size);    //TODO 这里是否应该做一个倍数检查
-}
-
-#define LYBOX_HEAD_INDEX(lybox) \
-    lybox_address_to_index(lybox, lybox->p_head)
-#define LYBOX_TAIL_INDEX(lybox) \
-    lybox_address_to_index(lybox, lybox->p_tail)
-
-/**
- * @brief 容器中成员索引值转换为地址
- *
- * @param lybox 容器对象
- * @param index 索引值
- * @return void* 返回成员的地址
- */
-static inline void *lybox_index_to_address(lybox_t *lybox, size_t index)
-{
-    if(index >= lybox->len) return NULL;
-    return (void*)(lybox->box + index * lybox->member_size);
-}
+uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
 
 
 #endif /* __LYBOX_H__ */
