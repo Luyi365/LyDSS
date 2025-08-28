@@ -51,5 +51,11 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# debug information files
-*.dwo
+# VSCode
+**/.vscode/
+
+# Other files and folders
+out/
+build/
+CMakePresets.json
+dev/
