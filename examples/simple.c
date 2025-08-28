@@ -15,7 +15,7 @@
 
 int simple()
 {
-    lybox_t *handle = lybox_create(10, sizeof(int));
+    LyBOX_t *handle = lybox_create(10, sizeof(int));
 
     int data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int data2[10] = {0};

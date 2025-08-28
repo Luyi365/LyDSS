@@ -57,7 +57,7 @@
 #include <stdlib.h>
 
 /* LyBOX */
-typedef struct lybox lybox_t;
+typedef struct LyBOX LyBOX_t;
 
 typedef enum LyboxWriteMode {
     LyboxWriteMode_Default,      ///< 满了则不能再写入
@@ -68,12 +68,12 @@ typedef enum LyboxWriteMode {
  * 但追赶的方式固定为FIFO，很多时候也需要LIFO，因此需要引进栈的方式（这个栈是通过相向而行的环形缓冲来实现的）。
  */
 typedef enum LyboxReadMode {
-    LyboxReadMode_FIFO,          ///< 先出先进
+    LyboxReadMode_FIFO,         ///< 先出先进
     LyboxReadMode_LIFOUnit,     ///< 后进先出（以成员大小为单位）
     LyboxReadMode_LIFOBlock,    ///< 后进先出（以块大小为单位）
 } LyboxReadMode_t;
 
-struct lybox {
+struct LyBOX {
     uint8_t len;    ///< 容器长度
     size_t count;   ///< 容器中成员实际数量
     
@@ -92,16 +92,16 @@ struct lybox {
  * @param box_len 容器长度（最大成员个数）
  * @param member_size 单个成员大小
  * @param r_mode 读取模式
- * @return lybox_t* 返回一个容器对象
+ * @return LyBOX_t* 返回一个容器对象
  */
-lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size);
+LyBOX_t *lybox_create(uint8_t box_len, uint8_t mbr_size);
 
 /**
  * @brief 销毁容器
  *
  * @param lybox 容器对象
  */
-void lybox_delete(lybox_t *lybox);
+void lybox_delete(LyBOX_t *lybox);
 
 /**
  * @brief 向容器中存入数据
@@ -112,7 +112,7 @@ void lybox_delete(lybox_t *lybox);
  * @param w_mode 写入模式
  * @return uint8_t 返回实际存入的数量
  */
-uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
+uint8_t lybox_send(LyBOX_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
 
 #define LYBOX_SEND_DEFAULT(lybox, pval, num) \
 lybox_send(lybox, pval, num, LyboxWriteMode_Default)
@@ -128,7 +128,7 @@ lybox_send(lybox, pval, num, LyboxWriteMode_Fresh)
  * @param r_mode 读取模式
  * @return uint8_t 返回实际取出的数量
  */
-uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
+uint8_t lybox_receive(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
 
 /**
  * @brief 预读容器中的数据
@@ -141,7 +141,7 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMod
  *
  * @note peek和receive本质的区别在于peek不会移动指针位置
  */
-uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
+uint8_t lybox_peek(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
 
 
 #endif /* __LYBOX_H__ */

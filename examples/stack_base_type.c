@@ -21,7 +21,7 @@ int stack_base_type()
 
     int temp = 0;
 
-    stack_t *stack_handle = stack_create(STACK_SIZE, sizeof(int));
+    Stack_t *stack_handle = stack_create(STACK_SIZE, sizeof(int));
 
     temp = 0xa55a;
     printf("Push value1: 0x%x\n", temp);

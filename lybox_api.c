@@ -36,49 +36,49 @@
 
 /* ----------------------------------- 队列 ----------------------------------- */
 /// @brief 创建一个队列
-queue_t *queue_create(uint8_t queue_len, uint8_t item_size)
+Queue_t *queue_create(uint8_t queue_len, uint8_t item_size)
 {
     return lybox_create(queue_len, item_size);
 }
 
 /// @brief 销毁队列
-void queue_delete(queue_t *queue)
+void queue_delete(Queue_t *queue)
 {
     lybox_delete(queue);
 }
 
 /// @brief 向队列发送单个数据
-bool queue_send(queue_t *queue, void *pval)
+bool queue_send(Queue_t *queue, void *pval)
 {
     return !!lybox_send(queue, pval, 1, LyboxWriteMode_Default);
 }
 
 /// @brief 向队列发送多个数据
-uint8_t queue_send_multi(queue_t *queue, void *pval, size_t num)
+uint8_t queue_send_multi(Queue_t *queue, void *pval, size_t num)
 {
     return lybox_send(queue, pval, num, LyboxWriteMode_Default);
 }
 
 /// @brief 从队列接收单个数据
-bool queue_receive(queue_t *queue, void *pbuff)
+bool queue_receive(Queue_t *queue, void *pbuff)
 {
     return !!lybox_receive(queue, pbuff, 1, LyboxReadMode_FIFO);
 }
 
 /// @brief 从队列接收多个数据
-uint8_t queue_receive_multi(queue_t *queue, void *pbuff, size_t num)
+uint8_t queue_receive_multi(Queue_t *queue, void *pbuff, size_t num)
 {
     return lybox_receive(queue, pbuff, num, LyboxReadMode_FIFO);
 }
 
 /// @brief 预读队列单个数据
-bool queue_peek(queue_t *queue, void *pbuff)
+bool queue_peek(Queue_t *queue, void *pbuff)
 {
     return !!lybox_peek(queue, pbuff, 1, LyboxReadMode_FIFO);
 }
 
 /// @brief 预读队列多个数据
-uint8_t queue_peek_multi(queue_t *queue, void *pbuff, size_t num)
+uint8_t queue_peek_multi(Queue_t *queue, void *pbuff, size_t num)
 {
     return lybox_peek(queue, pbuff, num, LyboxReadMode_FIFO);
 }
@@ -86,37 +86,37 @@ uint8_t queue_peek_multi(queue_t *queue, void *pbuff, size_t num)
 
 /* ------------------------------------ 栈 ----------------------------------- */
 /// @brief 创建一个栈
-stack_t *stack_create(uint8_t stack_len, uint8_t item_size)
+Stack_t *stack_create(uint8_t stack_len, uint8_t item_size)
 {
     return lybox_create(stack_len, item_size);
 }
 
 /// @brief 销毁队列
-void stack_delete(stack_t *stack)
+void stack_delete(Stack_t *stack)
 {
     lybox_delete(stack);
 }
 
 /// @brief 向栈压入单个数据
-bool stack_push(stack_t *stack, void *pval)
+bool stack_push(Stack_t *stack, void *pval)
 {
     return !!lybox_send(stack, pval, 1, LyboxWriteMode_Default);
 }
 
 /// @brief 向栈压入多个数据
-uint8_t stack_push_multi(stack_t *stack, void *pval, size_t num)
+uint8_t stack_push_multi(Stack_t *stack, void *pval, size_t num)
 {
     return lybox_send(stack, pval, num, LyboxWriteMode_Default);
 }
 
 /// @brief 从栈弹出单个数据
-bool stack_pop(stack_t *stack, void *pbuff)
+bool stack_pop(Stack_t *stack, void *pbuff)
 {
     return !!lybox_receive(stack, pbuff, 1, LyboxReadMode_LIFOBlock);
 }
 
 /// @brief 从栈弹出多个数据
-uint8_t stack_pop_multi(stack_t *stack, void *pbuff, size_t num)
+uint8_t stack_pop_multi(Stack_t *stack, void *pbuff, size_t num)
 {
     return lybox_receive(stack, pbuff, num, LyboxReadMode_LIFOBlock);
 }
@@ -124,25 +124,25 @@ uint8_t stack_pop_multi(stack_t *stack, void *pbuff, size_t num)
 
 /* ------------------------------------ 流 ----------------------------------- */
 /// @brief 创建一个流
-stream_t *stream_create(size_t bytes_size)
+Stream_t *stream_create(size_t bytes_size)
 {
     return lybox_create(bytes_size, sizeof(byte_t));
 }
 
 /// @brief 销毁流
-void stream_delete(stream_t *stream)
+void stream_delete(Stream_t *stream)
 {
     lybox_delete(stream);
 }
 
 /// @brief 向流发送多个字节
-uint8_t stream_send(stream_t *stream, void *pval, size_t num)
+uint8_t stream_send(Stream_t *stream, void *pval, size_t num)
 {
     return lybox_send(stream, pval, num, LyboxWriteMode_Fresh);
 }
 
 /// @brief 向流接收多个字节
-uint8_t stream_receive(stream_t *stream, void *pbuff, size_t num)
+uint8_t stream_receive(Stream_t *stream, void *pbuff, size_t num)
 {
     return lybox_receive(stream, pbuff, num, LyboxReadMode_LIFOUnit);
 }
@@ -150,31 +150,31 @@ uint8_t stream_receive(stream_t *stream, void *pbuff, size_t num)
 
 /* --------------------------------- 事件/标志组 --------------------------------- */
 /// @brief 创建一个事件组
-event_group_t *event_group_create(void)
+EventGroup_t *event_group_create(void)
 {
     return lybox_create(1, sizeof(event_bits_t));
 }
 
 /// @brief 销毁事件组
-void event_group_delete(event_group_t *event_group)
+void event_group_delete(EventGroup_t *event_group)
 {
     lybox_delete(event_group);
 }
 
 /// @brief 事件组中设置位（标志）
-event_bits_t event_group_set(event_group_t *event_group, const event_bits_t bits)
+event_bits_t event_group_set(EventGroup_t *event_group, const event_bits_t bits)
 {
     return *(event_bits_t *)(event_group->box) |= bits;
 }
 
 /// @brief 事件组中清除位（标志）
-event_bits_t event_group_clear(event_group_t *event_group, const event_bits_t bits)
+event_bits_t event_group_clear(EventGroup_t *event_group, const event_bits_t bits)
 {
     return *(event_bits_t *)(event_group->box) &= ~bits;
 }
 
 /// @brief 得到事件组的当前值
-event_bits_t event_group_get(event_group_t *event_group)
+event_bits_t event_group_get(EventGroup_t *event_group)
 {
     return *(event_bits_t *)(event_group->box);
 }

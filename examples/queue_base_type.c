@@ -21,7 +21,7 @@ int queue_base_type()
 
     int temp = 0;
     
-    queue_t *queue_handle = queue_create(QUEUE_SIZE, sizeof(int));
+    Queue_t *queue_handle = queue_create(QUEUE_SIZE, sizeof(int));
 
     temp = 0xa55a;
     printf("Send value1: 0x%x\n", temp);

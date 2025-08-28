@@ -56,9 +56,9 @@
 #include "lybox.h"
 
 /// @brief 创建一个容器
-lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size)
+LyBOX_t *lybox_create(uint8_t box_len, uint8_t mbr_size)
 {
-    lybox_t *lybox = malloc(sizeof(lybox_t));
+    LyBOX_t *lybox = malloc(sizeof(LyBOX_t));
     
     lybox->len = box_len;
     lybox->count = 0;
@@ -72,7 +72,7 @@ lybox_t *lybox_create(uint8_t box_len, uint8_t mbr_size)
 }
 
 /// @brief 销毁容器
-void lybox_delete(lybox_t *lybox)
+void lybox_delete(LyBOX_t *lybox)
 {
     free(lybox->box);
     lybox->box = NULL;
@@ -81,7 +81,7 @@ void lybox_delete(lybox_t *lybox)
 }
 
 /// @brief 向容器中存入数据
-uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode)
+uint8_t lybox_send(LyBOX_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode)
 {
     uint8_t to_write = 0;
     uint8_t offset_idx = 0; // 读取pval数据起始偏移量，只用于FRESH模式，来避免数据重复计算
@@ -131,7 +131,7 @@ uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mo
 }
 
 /// @brief 从容器中取出数据
-uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode)
+uint8_t lybox_receive(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode)
 {
     uint8_t to_read = lybox_peek(lybox, pbuff, num, r_mode);
     
@@ -147,7 +147,7 @@ uint8_t lybox_receive(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMod
 
 /// @brief 预读容器中的数据
 /// @note peek和receive本质的区别在于peek不会移动指针位置
-uint8_t lybox_peek(lybox_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode)
+uint8_t lybox_peek(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode)
 {
     uint8_t to_read = (num > lybox->count) ? lybox->count : num;
     
