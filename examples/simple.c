@@ -19,11 +19,11 @@ int simple()
 
     int data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int data2[10] = {0};
-    lybox_send(handle, data, 2, LyboxWriteMode_DEFAULT);
+    lybox_send(handle, data, 2, LyboxWriteMode_Default);
     lybox_receive(handle, data, 2, LyboxReadMode_FIFO);
 
-    lybox_send(handle, data, 7, LyboxWriteMode_DEFAULT);
-    lybox_send(handle, data, 8, LyboxWriteMode_DEFAULT);
+    lybox_send(handle, data, 7, LyboxWriteMode_Default);
+    lybox_send(handle, data, 8, LyboxWriteMode_Default);
 
     lybox_receive(handle, data2, handle->count, LyboxReadMode_FIFO);
 

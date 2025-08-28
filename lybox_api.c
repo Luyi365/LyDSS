@@ -50,13 +50,13 @@ void queue_delete(queue_t *queue)
 /// @brief 向队列发送单个数据
 bool queue_send(queue_t *queue, void *pval)
 {
-    return !!lybox_send(queue, pval, 1, LyboxWriteMode_DEFAULT);
+    return !!lybox_send(queue, pval, 1, LyboxWriteMode_Default);
 }
 
 /// @brief 向队列发送多个数据
 uint8_t queue_send_multi(queue_t *queue, void *pval, size_t num)
 {
-    return lybox_send(queue, pval, num, LyboxWriteMode_DEFAULT);
+    return lybox_send(queue, pval, num, LyboxWriteMode_Default);
 }
 
 /// @brief 从队列接收单个数据
@@ -100,25 +100,25 @@ void stack_delete(stack_t *stack)
 /// @brief 向栈压入单个数据
 bool stack_push(stack_t *stack, void *pval)
 {
-    return !!lybox_send(stack, pval, 1, LyboxWriteMode_DEFAULT);
+    return !!lybox_send(stack, pval, 1, LyboxWriteMode_Default);
 }
 
 /// @brief 向栈压入多个数据
 uint8_t stack_push_multi(stack_t *stack, void *pval, size_t num)
 {
-    return lybox_send(stack, pval, num, LyboxWriteMode_DEFAULT);
+    return lybox_send(stack, pval, num, LyboxWriteMode_Default);
 }
 
 /// @brief 从栈弹出单个数据
 bool stack_pop(stack_t *stack, void *pbuff)
 {
-    return !!lybox_receive(stack, pbuff, 1, LyboxReadMode_LIFO_BLOCK);
+    return !!lybox_receive(stack, pbuff, 1, LyboxReadMode_LIFOBlock);
 }
 
 /// @brief 从栈弹出多个数据
 uint8_t stack_pop_multi(stack_t *stack, void *pbuff, size_t num)
 {
-    return lybox_receive(stack, pbuff, num, LyboxReadMode_LIFO_BLOCK);
+    return lybox_receive(stack, pbuff, num, LyboxReadMode_LIFOBlock);
 }
 
 
@@ -138,13 +138,13 @@ void stream_delete(stream_t *stream)
 /// @brief 向流发送多个字节
 uint8_t stream_send(stream_t *stream, void *pval, size_t num)
 {
-    return lybox_send(stream, pval, num, LyboxWriteMode_FRESH);
+    return lybox_send(stream, pval, num, LyboxWriteMode_Fresh);
 }
 
 /// @brief 向流接收多个字节
 uint8_t stream_receive(stream_t *stream, void *pbuff, size_t num)
 {
-    return lybox_receive(stream, pbuff, num, LyboxReadMode_LIFO_UNIT);
+    return lybox_receive(stream, pbuff, num, LyboxReadMode_LIFOUnit);
 }
 
 

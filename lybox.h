@@ -60,8 +60,8 @@
 typedef struct lybox lybox_t;
 
 typedef enum LyboxWriteMode {
-    LyboxWriteMode_DEFAULT,      ///< 满了则不能再写入
-    LyboxWriteMode_FRESH,        ///< 满了则从头部以保持数据最新的方式写入
+    LyboxWriteMode_Default,      ///< 满了则不能再写入
+    LyboxWriteMode_Fresh,        ///< 满了则从头部以保持数据最新的方式写入
 } LyboxWriteMode_t;
 
 /** @note 对于环形缓冲来说，追赶的方式不区分流和块，因为这两种方式最后得到的结果是一样的；
@@ -69,18 +69,20 @@ typedef enum LyboxWriteMode {
  */
 typedef enum LyboxReadMode {
     LyboxReadMode_FIFO,          ///< 先出先进
-    LyboxReadMode_LIFO_UNIT,     ///< 后进先出（以成员大小为单位）
-    LyboxReadMode_LIFO_BLOCK,    ///< 后进先出（以块大小为单位）
+    LyboxReadMode_LIFOUnit,     ///< 后进先出（以成员大小为单位）
+    LyboxReadMode_LIFOBlock,    ///< 后进先出（以块大小为单位）
 } LyboxReadMode_t;
 
 struct lybox {
     uint8_t len;    ///< 容器长度
     size_t count;   ///< 容器中成员实际数量
-
+    
     uint8_t member_size; ///< 单个成员的大小（单位：字节）
-    uint8_t head_index;     ///< 头索引    假定-1是无效值
-    uint8_t tail_index;     ///< 尾索引    假定-1是无效值
-
+    uint8_t front_index;     ///< 队首索引
+    uint8_t write_index;     ///< 写索引
+    /// @note 这里为什么不是将 front & rear 或者 write & read 成对使用？
+    ///       因为这个容器的写入永远是从尾部开始，但如果采用的是尾成员而不是写入位置，那么就会出现在初始化还没有写入数据时，尾成员是不存在的问题，导致找不到写入位置。
+    
     void *box;      ///< 容器
 };
 
@@ -113,9 +115,9 @@ void lybox_delete(lybox_t *lybox);
 uint8_t lybox_send(lybox_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
 
 #define LYBOX_SEND_DEFAULT(lybox, pval, num) \
-    lybox_send(lybox, pval, num, LyboxWriteMode_DEFAULT)
+lybox_send(lybox, pval, num, LyboxWriteMode_Default)
 #define LYBOX_SEND_FRESH(lybox, pval, num) \
-    lybox_send(lybox, pval, num, LyboxWriteMode_FRESH)
+lybox_send(lybox, pval, num, LyboxWriteMode_Fresh)
 
 /**
  * @brief 从容器中取出数据
