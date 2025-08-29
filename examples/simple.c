@@ -11,20 +11,20 @@
  */
 
 #include <stdio.h>
-#include "../lybkt.h"
+#include "../lyset.h"
 
 int simple()
 {
 	int a = 5, b = 10;
-	LyBKT_t *bucket = lybkt_create();
+	LySET_t *set = lyset_create();
 	
-	lybkt_put_item(bucket, "TEST1", &a);
+	lyset_put_simple(set, "TEST1", &a);
 	
-	printf("TEST1 = %d\n", *(int*)(lybkt_get_item(bucket, "TEST1")));
+	printf("TEST1 = %d\n", *(int*)(lyset_get_item(set, "TEST1")));
 	
-	lybkt_put_item(bucket, "TEST1", &b);
+	lyset_put_simple(set, "TEST1", &b);
 	
-	printf("TEST1 = %d\n", *(int*)(lybkt_get_item(bucket, "TEST1")));
+	printf("TEST1 = %d\n", *(int*)(lyset_get_item(set, "TEST1")));
 	
 	return 0;
 }
