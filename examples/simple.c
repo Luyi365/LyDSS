@@ -18,13 +18,13 @@ int simple()
 	int a = 5, b = 10;
 	LyBKT_t *bucket = lybkt_create();
 	
-	lybkt_put(bucket, "TEST1", &a);
+	lybkt_put_item(bucket, "TEST1", &a);
 	
-	printf("TEST1 = %d\n", *(int*)(lybkt_get(bucket, "TEST1")));
+	printf("TEST1 = %d\n", *(int*)(lybkt_get_item(bucket, "TEST1")));
 	
-	lybkt_post(bucket, "TEST1", &b);
+	lybkt_put_item(bucket, "TEST1", &b);
 	
-	printf("TEST1 = %d\n", *(int*)(lybkt_get(bucket, "TEST1")));
+	printf("TEST1 = %d\n", *(int*)(lybkt_get_item(bucket, "TEST1")));
 	
 	return 0;
 }

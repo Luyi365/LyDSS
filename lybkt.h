@@ -51,7 +51,8 @@
 #ifndef __BYBKT__
 #define __BYBKT__
 
-#include <stdint.h> 
+#include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct LyItem LyItem_t;
@@ -60,13 +61,12 @@ typedef struct LyBKT LyBKT_t;
 // 包装项
 struct LyItem {
 	const char *name;	///< 名称
-	uint32_t hash;		///< 哈希值
-	
 	void *item;			///< 项
-//	LyItem_t *prev;
-	LyItem_t *next;
+	size_t size;		///< 项大小
 	
-	void* attribute;	///< 挂载其他属性
+	void* attach;	///< 附带其他属性
+	
+	LyItem_t *next;
 };
 
 // 桶
@@ -77,10 +77,7 @@ struct LyBKT {
 	LyItem_t *tail_item;
 };
 
-/* ---------------------------------- 便捷接口 ---------------------------------- */
 
-
-/* ---------------------------------- 基础功能 ---------------------------------- */
 /**
  * @brief 创建一个桶
  *
@@ -89,24 +86,60 @@ struct LyBKT {
 LyBKT_t *lybkt_create(void);
 
 /**
- * @brief 将一个项放入桶
+ * @brief 将一个项放到桶中
  *
  * @param bucket 桶
  * @param name 项名称
  * @param item 项
- * @return uint32_t 哈希值
+ * @param size 项大小（单位：字节）
+ * @param attach 附带属性
+ * @return LyItem_t* 生成的包装项
+ * 
+ * @note 有同名则替换，无同名则增加
  */
-uint32_t lybkt_put(LyBKT_t *bucket, const char *const name, void *item);
+LyItem_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, size_t size, void *attach);
 
 /**
- * @brief 将一个项提交到桶
- *
+ * @brief 将一个项放到桶中（不带任何属性）
+ * 
  * @param bucket 桶
  * @param name 项名称
  * @param item 项
- * @return uint32_t 哈希值
+ * 
+ * @return LyItem_t* 生成的包装项
+ * 
+ * @note 这个函数就是实现很单纯的KV功能
  */
-uint32_t lybkt_post(LyBKT_t *bucket, const char *const name, void *item);
+LyItem_t *lybkt_put_item(LyBKT_t *bucket, const char *const name, void *item);
+
+/**
+ * @brief 将一个项放到桶中（不带任何属性）
+ * 
+ * @param bucket 桶
+ * @param name 项名称
+ * @param item 项
+ * @return bool 是否放入成功
+ */
+bool lybkt_patch_item(LyBKT_t *bucket, const char *const name, void *item);
+
+/**
+ * @brief 将一个项放到桶中（不带任何属性）
+ * 
+ * @param bucket 桶
+ * @param name 项名称
+ * @param attach 附加属性
+ * @return bool 是否放入成功
+ */
+bool lybkt_patch_attach(LyBKT_t *bucket, const char *const name, void *attach);
+
+/**
+ * @brief 获取桶中的指定包装项
+ *
+ * @param bucket 桶
+ * @param name 项名称
+ * @return LyItem_t* 包装项
+ */
+LyItem_t *lybkt_get(LyBKT_t *bucket, const char *const name);
 
 /**
  * @brief 获取桶中的指定项
@@ -115,7 +148,7 @@ uint32_t lybkt_post(LyBKT_t *bucket, const char *const name, void *item);
  * @param name 项名称
  * @return void* 项
  */
-void *lybkt_get(LyBKT_t *bucket, const char *const name);
+void *lybkt_get_item(LyBKT_t *bucket, const char *const name);
 
 /**
  * @brief 清除桶中的指定项

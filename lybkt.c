@@ -53,33 +53,16 @@
 #include <string.h>
 #include "lybkt.h"
 
-/* ---------------------------------- 核心代码 ---------------------------------- */
-/// @brief 创建一个桶
-LyBKT_t *lybkt_create(void)
-{
-	LyBKT_t *bucket = malloc(sizeof(LyBKT_t));
-	
-	bucket->head_item = NULL;
-	bucket->tail_item = NULL;
-	bucket->count = 0;
-	
-	
-	return bucket;
-}
-
 /// @brief 将一个项放入桶
-uint32_t lybkt_put(LyBKT_t *bucket, const char *const name, void *item)
+/// @note 不检查重名
+static LyItem_t *lybkt_post(LyBKT_t *bucket, const char *const name, void *item, size_t size, void *attach)
 {
 	if(bucket == NULL) {
 		return 0;
 	}
 	
 	LyItem_t *lyitem = malloc(sizeof(LyItem_t));
-	lyitem->name = name;
-	lyitem->hash = 0;
-	lyitem->item = item;
-	lyitem->next = NULL;
-	lyitem->attribute = NULL;
+	*lyitem = (LyItem_t){.name = name, .item = item, .size = size, .attach = attach, .next = NULL};
 	
 	if(bucket->count == 0) {
 		bucket->head_item = lyitem;
@@ -92,17 +75,29 @@ uint32_t lybkt_put(LyBKT_t *bucket, const char *const name, void *item)
 		bucket->count++;
 	}
 	
-	return lyitem->hash;
+	return lyitem;
 }
 
-/// @brief 将一个项提交到桶
-uint32_t lybkt_post(LyBKT_t *bucket, const char *const name, void *item)
+/// @brief 创建一个桶
+LyBKT_t *lybkt_create(void)
+{
+	LyBKT_t *bucket = malloc(sizeof(LyBKT_t));
+	
+	bucket->head_item = NULL;
+	bucket->tail_item = NULL;
+	bucket->count = 0;
+	
+	return bucket;
+}
+
+/// @brief 将一个项放到桶中
+/// @note 遇到同名则替换，无同名则增加
+LyItem_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, size_t size, void *attach)
 {
 	if(bucket == NULL) {
 		return 0;
 	}
 	
-	uint32_t hash = 0;
 	LyItem_t *cur = bucket->head_item;
 	for(uint8_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
 		if (cur->name != NULL && strcmp(cur->name, name) == 0) {
@@ -113,17 +108,105 @@ uint32_t lybkt_post(LyBKT_t *bucket, const char *const name, void *item)
 	// 检查是否有匹配项
 	if(cur != NULL){
 		cur->item = item;
-		hash = cur->hash;
+		cur->size = size;
+		cur->attach = attach;
 	}
 	else{
-		hash = lybkt_put(bucket, name, item);
+		cur = lybkt_post(bucket, name, item, size, attach);
 	}
 	
-	return hash;
+	return cur;
+}
+
+/// @brief 将一个项放到桶中
+LyItem_t *lybkt_put_item(LyBKT_t *bucket, const char *const name, void *item)
+{
+	if(bucket == NULL) {
+		return 0;
+	}
+	
+	LyItem_t *cur = bucket->head_item;
+	for(uint8_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
+		if (cur->name != NULL && strcmp(cur->name, name) == 0) {
+			break; // 找到匹配项，退出查找
+		}
+	}
+	
+	// 检查是否有匹配项
+	if(cur != NULL){
+		cur->item = item;
+	}
+	else{
+		cur = lybkt_post(bucket, name, item, 0, NULL);
+	}
+	
+	return cur;
+}
+
+/// @brief 修改项对象
+bool lybkt_patch_item(LyBKT_t *bucket, const char *const name, void *item)
+{
+	if(bucket == NULL) {
+		return false;
+	}
+	
+	LyItem_t *cur = bucket->head_item;
+	for(uint8_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
+		if (cur->name != NULL && strcmp(cur->name, name) == 0) {
+			break; // 找到匹配项，退出查找
+		}
+	}
+	
+	if(cur != NULL){
+		cur->item = item;
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+/// @brief 修改项附加属性
+bool lybkt_patch_attach(LyBKT_t *bucket, const char *const name, void *attach)
+{
+	if(bucket == NULL) {
+		return false;
+	}
+	
+	LyItem_t *cur = bucket->head_item;
+	for(uint8_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
+		if (cur->name != NULL && strcmp(cur->name, name) == 0) {
+			break; // 找到匹配项，退出查找
+		}
+	}
+	
+	if(cur != NULL){
+		cur->attach = attach;
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+LyItem_t *lybkt_get(LyBKT_t *bucket, const char *const name)
+{
+	if(bucket == NULL || name == NULL || bucket->count == 0) {
+		return NULL;
+	}
+	
+	LyItem_t *cur = bucket->head_item;
+	for(uint8_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
+		if (cur->name != NULL && strcmp(cur->name, name) == 0) {
+			break; // 找到匹配项，退出查找
+		}
+	}
+	
+	return cur;
 }
 
 /// @brief 获取桶中的指定项
-void *lybkt_get(LyBKT_t *bucket, const char *const name)
+void *lybkt_get_item(LyBKT_t *bucket, const char *const name)
 {
 	if(bucket == NULL || name == NULL || bucket->count == 0) {
 		return NULL;
@@ -198,4 +281,4 @@ void lybkt_delete(LyBKT_t *bucket)
 	free(bucket);
 }
 
-/* ---------------------------------- 基本功能 ---------------------------------- */
+
