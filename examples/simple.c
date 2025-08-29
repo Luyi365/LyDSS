@@ -24,6 +24,8 @@ int simple()
 
     lybox_send(handle, data, 7, LyboxWriteMode_Default);
     lybox_send(handle, data, 8, LyboxWriteMode_Default);
+    lybox_cover(handle, &data2[0], 3);
+    lybox_set(handle, data2, 3, 0, LyboxWriteMode_Default);
 
     lybox_receive(handle, data2, handle->count, LyboxReadMode_FIFO);
 

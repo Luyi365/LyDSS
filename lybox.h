@@ -76,13 +76,13 @@ typedef enum LyboxReadMode {
 struct LyBOX {
     uint8_t len;    ///< 容器长度
     size_t count;   ///< 容器中成员实际数量
-    
-    uint8_t member_size; ///< 单个成员的大小（单位：字节）
-    uint8_t front_index;     ///< 队首索引
-    uint8_t write_index;     ///< 写索引
-    /// @note 这里为什么不是将 front & rear 或者 write & read 成对使用？
-    ///       因为这个容器的写入永远是从尾部开始，但如果采用的是尾成员而不是写入位置，那么就会出现在初始化还没有写入数据时，尾成员是不存在的问题，导致找不到写入位置。
-    
+
+    uint8_t member_size;   ///< 单个成员的大小（单位：字节）
+    uint8_t begin_index;   ///< 始端索引
+    uint8_t end_index;     ///< 末端索引
+    /// @note 这里的 begin_index 指向的是容器的第一个成员，而 end_index 指向的是容器最后一个成员的下一个位置，
+    ///       可以理解为把有效容器成员包裹在 begin_index 和 end_index 之间。
+
     void *box;      ///< 容器
 };
 
@@ -115,9 +115,23 @@ void lybox_delete(LyBOX_t *lybox);
 uint8_t lybox_send(LyBOX_t *lybox, void *pval, size_t num, LyboxWriteMode_t w_mode);
 
 #define LYBOX_SEND_DEFAULT(lybox, pval, num) \
-lybox_send(lybox, pval, num, LyboxWriteMode_Default)
+    lybox_send(lybox, pval, num, LyboxWriteMode_Default)
 #define LYBOX_SEND_FRESH(lybox, pval, num) \
-lybox_send(lybox, pval, num, LyboxWriteMode_Fresh)
+    lybox_send(lybox, pval, num, LyboxWriteMode_Fresh)
+
+/**
+ * @brief 设置容器中的数据
+ *
+ * @param lybox 容器对象
+ * @param pval 数据指针
+ * @param num 数据个数
+ * @param idx 容器索引（从队首索引lybox->begin_index开始为0）
+ * @param w_mode 写入模式
+ * @return uint8_t 返回实际存入的数量
+ * 
+ * @note 该函数是在 lybox_send 功能的基础上增加了可以指定索引位置存入，可以任意覆盖，灵活性更高
+ */
+uint8_t lybox_set(LyBOX_t *lybox, void *pval, size_t num, uint8_t idx, LyboxWriteMode_t w_mode);
 
 /**
  * @brief 从容器中取出数据
@@ -130,6 +144,13 @@ lybox_send(lybox, pval, num, LyboxWriteMode_Fresh)
  */
 uint8_t lybox_receive(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
 
+#define LYBOX_RECEIVE_FIFO(lybox, pbuff, num) \
+    lybox_receive(lybox, pbuff, num, LyboxReadMode_FIFO)
+#define LYBOX_RECEIVE_LIFO_UNIT(lybox, pbuff, num) \
+    lybox_receive(lybox, pbuff, num, LyboxReadMode_LIFOUnit)
+#define LYBOX_RECEIVE_LIFO_BLOCK(lybox, pbuff, num) \
+    lybox_receive(lybox, pbuff, num, LyboxReadMode_LIFOBlock)
+
 /**
  * @brief 预读容器中的数据
  *
@@ -139,9 +160,27 @@ uint8_t lybox_receive(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMod
  * @param r_mode 读取模式
  * @return uint8_t 返回实际读到的数量
  *
- * @note peek和receive本质的区别在于peek不会移动指针位置
+ * @note peek 和 receive 本质的区别在于 peek 不会移动指针位置
  */
 uint8_t lybox_peek(LyBOX_t *lybox, void *pbuff, size_t num, enum LyboxReadMode r_mode);
 
+#define LYBOX_PEEK_FIFO(lybox, pbuff, num) \
+    lybox_peek(lybox, pbuff, num, LyboxReadMode_FIFO)
+#define LYBOX_PEEK_LIFO_UNIT(lybox, pbuff, num) \
+    lybox_peek(lybox, pbuff, num, LyboxReadMode_LIFOUnit)
+#define LYBOX_PEEK_LIFO_BLOCK(lybox, pbuff, num) \
+    lybox_peek(lybox, pbuff, num, LyboxReadMode_LIFOBlock)
+
+/**
+ * @brief 覆盖容器中的数据
+ *
+ * @param lybox 容器对象
+ * @param pval 数据指针
+ * @param idx 容器索引（从队首索引 lybox->begin_index 开始为0）
+ * @return bool 成功或失败
+ *
+ * @note 只能覆盖一个成员，且覆盖项必须存在
+ */
+bool lybox_cover(LyBOX_t *lybox, void *pval, uint8_t idx);
 
 #endif /* __LYBOX_H__ */
