@@ -1,5 +1,5 @@
 /**
- * @file lyset.c
+ * @file lybkt.c
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2025-08-28
@@ -25,7 +25,7 @@
  * SOFTWARE.
  *
  * @note
- * LySET的核心是list + table结构，并引入RESET接口请求方法
+ * LyBKT的核心是list + table结构，并引入RESET接口请求方法
  *
  *
  *  -------------------
@@ -35,14 +35,14 @@
  *      \   (__)
  *       \  /oo|\_______
  *         (_"_)\  牛码  )\/\
- *  █████   U   ||-----j/   █████████  ██████████ ███████████
- * ░░███    '   ||     ||  ███░░░░░███░░███░░░░░█░█░░░███░░░█
- *  ░███    '   █████ ████░███    ░░░  ░███  █ ░ ░   ░███  ░ 
- *  ░███    ;  ░░███ ░███ ░░█████████  ░██████       ░███      
- *  ░███ ~~~^~~;░███ ░███  ░░░░░░░░███ ░███░░█       ░███    
- *  ░███ ~~~~~█;░███ ░███  ███    ░███ ░███ ░   █    ░███    
- *  ███████████;░░███████ ░░█████████  ██████████    █████   
- * ░░░░░░░░░░░;; ░░░░░███  ░░░░░░░░░  ░░░░░░░░░░    ░░░░░    
+ *  █████   U   ||-----j/  ███████████  █████   ████ ███████████
+ * ░░███    '   ||     || ░░███░░░░░███░░███   ███░ ░█░░░███░░░█
+ *  ░███    '   █████ ████ ░███    ░███ ░███  ███   ░   ░███  ░ 
+ *  ░███    ;  ░░███ ░███  ░██████████  ░███████        ░███    
+ *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███ ░███░░███       ░███   
+ *  ░███ ~~~~~█;░███ ░███  ░███    ░███ ░███ ░░███      ░███    
+ *  ███████████;░░███████  ███████████  █████ ░░████    █████   
+ * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░  ░░░░░   ░░░░    ░░░░░    
  *          ;;;  ███ ░███                                       
  *          ;;  ░░██████
  *           ;   ░░░░░░
@@ -51,32 +51,32 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "lyset.h"
+#include "lybkt.h"
 
 static void *_memdup(const void *src, size_t size);
-static void _lyset_remove_node(LySET_t *set, Node_t *node);
+static void _lybkt_remove_node(LyBKT_t *bucket, Node_t *node);
 
-/// @brief 创建一个集合
-LySET_t *lyset_create(void)
+/// @brief 创建一个桶
+LyBKT_t *lybkt_create(void)
 {
-	LySET_t *set = malloc(sizeof(LySET_t));
-	if (set == NULL) {
+	LyBKT_t *bucket = malloc(sizeof(LyBKT_t));
+	if (bucket == NULL) {
 		return NULL;
 	}
 	
-	*set = (LySET_t){
+	*bucket = (LyBKT_t){
 		.head_item = NULL,
 		.tail_item = NULL,
 		.count = 0
 	};
 	
-	return set;
+	return bucket;
 }
 
-/// @brief 将一个项添加到集合
-Node_t *lyset_post(LySET_t *set, const char *const name, void *item, struct Meta meta, bool at_head)
+/// @brief 将一个项添加到桶
+Node_t *lybkt_post(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, bool at_head)
 {
-	if (set == NULL) {
+	if (bucket == NULL) {
 		return NULL;
 	}
 	
@@ -103,40 +103,40 @@ Node_t *lyset_post(LySET_t *set, const char *const name, void *item, struct Meta
 		.next = NULL,
 	};
 	
-	if (set->count == 0) {
-		set->head_item = node;
-		set->tail_item = node;
+	if (bucket->count == 0) {
+		bucket->head_item = node;
+		bucket->tail_item = node;
 	} 
 	else {
 		if(at_head == true) {
-			node->next = set->head_item;
-			set->head_item->prev = node;
-			set->head_item = node;
+			node->next = bucket->head_item;
+			bucket->head_item->prev = node;
+			bucket->head_item = node;
 		}
 		else {
-			node->prev = set->tail_item;
-			set->tail_item->next = node;
-			set->tail_item = node;
+			node->prev = bucket->tail_item;
+			bucket->tail_item->next = node;
+			bucket->tail_item = node;
 		}
 	}
 	
-	set->count++;
+	bucket->count++;
 	return node;
 }
 
-/// @brief 将一个项放到集合中
+/// @brief 将一个项放到桶中
 /// @note 遇到同名则替换，无同名则增加
-Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize)
+Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize)
 {
-	if (set == NULL) {
+	if (bucket == NULL) {
 		return NULL;
 	}
 	
-	Node_t *cur = lyset_get(set, name);
+	Node_t *cur = lybkt_get(bucket, name);
 	
 	if (cur == NULL) {
 		// 添加新项
-		cur = lyset_post(set, name, item, (struct Meta){mtype, mdata, msize}, 0);
+		cur = lybkt_post(bucket, name, item, (struct Meta){mtype, mdata, msize}, 0);
 	} 
 	else {
 		// 更新现有项
@@ -157,14 +157,14 @@ Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t m
 	return cur;
 }
 
-/// @brief 将一个项插入到集合指定位置
-Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before)
+/// @brief 将一个项插入到桶指定位置
+Node_t *lybkt_insert(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before)
 {
-	if (set == NULL || at_name == NULL || set->count == 0) {
+	if (bucket == NULL || at_name == NULL || bucket->count == 0) {
 		return NULL;
 	}	
 	
-	Node_t *cur = lyset_get(set, at_name);
+	Node_t *cur = lybkt_get(bucket, at_name);
 	if (cur != NULL) {
 		Node_t *node = malloc(sizeof(Node_t));
 		if (node == NULL) {
@@ -190,8 +190,8 @@ Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Me
 		};
 		
 		if (at_before == true) {
-			if(cur->prev == NULL || cur == set->head_item) {
-				set->head_item = node;
+			if(cur->prev == NULL || cur == bucket->head_item) {
+				bucket->head_item = node;
 			}
 			else {
 				node->prev = cur->prev;
@@ -201,8 +201,8 @@ Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Me
 			cur->prev = node;
 		}
 		else {
-			if(cur->next == NULL || cur == set->tail_item) {
-				set->tail_item = node;
+			if(cur->next == NULL || cur == bucket->tail_item) {
+				bucket->tail_item = node;
 			}
 			else {
 				node->next = cur->next;
@@ -212,22 +212,22 @@ Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Me
 			cur->next = node;
 		}
 		
-		set->count++;
+		bucket->count++;
 		return node;
 	}
 	
 	return NULL;
 }
 
-/// @brief 获取集合中的节点
-Node_t *lyset_get(LySET_t *set, const char *const name)
+/// @brief 获取桶中的节点
+Node_t *lybkt_get(LyBKT_t *bucket, const char *const name)
 {
-	if (set == NULL || name == NULL || set->count == 0) {
+	if (bucket == NULL || name == NULL || bucket->count == 0) {
 		return NULL;
 	}
 	
-	Node_t *cur = set->head_item;
-	for (uint32_t i = 0; cur != NULL && i < set->count; cur = cur->next, i++) {
+	Node_t *cur = bucket->head_item;
+	for (uint32_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
 		if (cur->name != NULL && strcmp(cur->name, name) == 0) {
 			return cur; // 找到匹配项
 		}
@@ -236,14 +236,14 @@ Node_t *lyset_get(LySET_t *set, const char *const name)
 	return NULL;
 }
 
-/// @brief 修改集合中的索引名
-bool lyset_patch_name(LySET_t *set, const char *const old_name, const char *const new_name)
+/// @brief 修改桶中的索引名
+bool lybkt_patch_name(LyBKT_t *bucket, const char *const old_name, const char *const new_name)
 {
-	if (set == NULL || old_name == NULL || new_name == NULL || set->count == 0) {
+	if (bucket == NULL || old_name == NULL || new_name == NULL || bucket->count == 0) {
 		return NULL;
 	}	
 	
-	Node_t *cur = lyset_get(set, old_name);
+	Node_t *cur = lybkt_get(bucket, old_name);
 	if (cur != NULL) {
 		cur->name = new_name;
 		return true;
@@ -252,14 +252,14 @@ bool lyset_patch_name(LySET_t *set, const char *const old_name, const char *cons
 	return false;
 }
 
-/// @brief 修改集合中的项指针
-bool lyset_patch_item(LySET_t *set, const char *const name, void *item)
+/// @brief 修改桶中的项指针
+bool lybkt_patch_item(LyBKT_t *bucket, const char *const name, void *item)
 {
-	if (set == NULL || name == NULL || set->count == 0) {
+	if (bucket == NULL || name == NULL || bucket->count == 0) {
 		return NULL;
 	}
 	
-	Node_t *cur = lyset_get(set, name);
+	Node_t *cur = lybkt_get(bucket, name);
 	if (cur != NULL) {
 		cur->item = item;
 		return true;
@@ -268,14 +268,14 @@ bool lyset_patch_item(LySET_t *set, const char *const name, void *item)
 	return false;
 }
 
-/// @brief 修改集合中的元数据
-bool lyset_patch_meta(LySET_t *set, const char *const name, struct Meta meta)
+/// @brief 修改桶中的元数据
+bool lybkt_patch_meta(LyBKT_t *bucket, const char *const name, struct Meta meta)
 {
-	if (set == NULL || name == NULL || set->count == 0) {
+	if (bucket == NULL || name == NULL || bucket->count == 0) {
 		return NULL;
 	}
 	
-	Node_t *cur = lyset_get(set, name);
+	Node_t *cur = lybkt_get(bucket, name);
 	if (cur != NULL) {
 		if(cur->meta.data != NULL) {
 			free(cur->meta.data);
@@ -293,16 +293,16 @@ bool lyset_patch_meta(LySET_t *set, const char *const name, struct Meta meta)
 	return false;
 }
 
-/// @brief 从集合中移除项但不释放（返回被移除的项）
-Node_t *lyset_remove(LySET_t *set, const char *const name)
+/// @brief 从桶中移除项但不释放（返回被移除的项）
+Node_t *lybkt_remove(LyBKT_t *bucket, const char *const name)
 {
-	if (set == NULL || name == NULL || set->count == 0) {
+	if (bucket == NULL || name == NULL || bucket->count == 0) {
 		return NULL;
 	}
 	
-	Node_t *cur = lyset_get(set, name);
+	Node_t *cur = lybkt_get(bucket, name);
 	if (cur != NULL) {
-		_lyset_remove_node(set, cur);
+		_lybkt_remove_node(bucket, cur);
 		// 断开与链表的连接
 		cur->prev = NULL;
 		cur->next = NULL;
@@ -311,14 +311,14 @@ Node_t *lyset_remove(LySET_t *set, const char *const name)
 	return cur;
 }
 
-/// @brief 删除集合中的节点
-bool lyset_delete_note(LySET_t *set, const char *const name)
+/// @brief 删除桶中的节点
+bool lybkt_delete_note(LyBKT_t *bucket, const char *const name)
 {
-	if (set == NULL || name == NULL || set->count == 0) {
+	if (bucket == NULL || name == NULL || bucket->count == 0) {
 		return false;
 	}
 	
-	Node_t *cur = lyset_remove(set, name);
+	Node_t *cur = lybkt_remove(bucket, name);
 	if (cur != NULL) {
 		if(cur->meta.data != NULL) {
 			free(cur->meta.data);
@@ -330,21 +330,21 @@ bool lyset_delete_note(LySET_t *set, const char *const name)
 	return false;
 }
 
-/// @brief 销毁指定的集合
-void lyset_delete(LySET_t *set)
+/// @brief 销毁指定的桶
+void lybkt_delete(LyBKT_t *bucket)
 {
-	if (set == NULL) {
+	if (bucket == NULL) {
 		return;
 	}
 	
-	Node_t *cur = set->head_item;
+	Node_t *cur = bucket->head_item;
 	while (cur != NULL) {
 		Node_t *next = cur->next;
 		free(cur);
 		cur = next;
 	}
 	
-	free(set);
+	free(bucket);
 }
 
 /// @brief 分配内存并复制内容（返回新分配的内存指针）
@@ -362,10 +362,10 @@ static void *_memdup(const void *src, size_t size)
 	return memcpy(dest, src, size);
 }
 
-/// @brief 从集合中移除一个节点
-static void _lyset_remove_node(LySET_t *set, Node_t *node)
+/// @brief 从桶中移除一个节点
+static void _lybkt_remove_node(LyBKT_t *bucket, Node_t *node)
 {
-	if (set == NULL || node == NULL) {
+	if (bucket == NULL || node == NULL) {
 		return;
 	}
 	
@@ -374,7 +374,7 @@ static void _lyset_remove_node(LySET_t *set, Node_t *node)
 		node->prev->next = node->next;
 	} 
 	else {
-		set->head_item = node->next;
+		bucket->head_item = node->next;
 	}
 	
 	// 更新后继节点的prev指针
@@ -382,11 +382,11 @@ static void _lyset_remove_node(LySET_t *set, Node_t *node)
 		node->next->prev = node->prev;
 	} 
 	else {
-		set->tail_item = node->prev;
+		bucket->tail_item = node->prev;
 	}
 	
 	// 更新计数器
-	set->count--;
+	bucket->count--;
 }
 
 

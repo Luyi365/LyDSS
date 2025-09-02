@@ -1,5 +1,5 @@
 /**
- * @file lyset.h
+ * @file lybkt.h
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2025-08-28
@@ -25,7 +25,7 @@
  * SOFTWARE.
  *
  * @note
- * LySET的核心是list + table结构，并引入RESET接口请求方法
+ * LyBKT的核心是list + table结构，并引入RESET接口请求方法
  *
  *
  *  -------------------
@@ -35,28 +35,28 @@
  *      \   (__)
  *       \  /oo|\_______
  *         (_"_)\  牛码  )\/\
- *  █████   U   ||-----j/   █████████  ██████████ ███████████
- * ░░███    '   ||     ||  ███░░░░░███░░███░░░░░█░█░░░███░░░█
- *  ░███    '   █████ ████░███    ░░░  ░███  █ ░ ░   ░███  ░ 
- *  ░███    ;  ░░███ ░███ ░░█████████  ░██████       ░███      
- *  ░███ ~~~^~~;░███ ░███  ░░░░░░░░███ ░███░░█       ░███    
- *  ░███ ~~~~~█;░███ ░███  ███    ░███ ░███ ░   █    ░███    
- *  ███████████;░░███████ ░░█████████  ██████████    █████   
- * ░░░░░░░░░░░;; ░░░░░███  ░░░░░░░░░  ░░░░░░░░░░    ░░░░░    
+ *  █████   U   ||-----j/  ███████████  █████   ████ ███████████
+ * ░░███    '   ||     || ░░███░░░░░███░░███   ███░ ░█░░░███░░░█
+ *  ░███    '   █████ ████ ░███    ░███ ░███  ███   ░   ░███  ░ 
+ *  ░███    ;  ░░███ ░███  ░██████████  ░███████        ░███    
+ *  ░███ ~~~^~~;░███ ░███  ░███░░░░░███ ░███░░███       ░███   
+ *  ░███ ~~~~~█;░███ ░███  ░███    ░███ ░███ ░░███      ░███    
+ *  ███████████;░░███████  ███████████  █████ ░░████    █████   
+ * ░░░░░░░░░░░;; ░░░░░███ ░░░░░░░░░░░  ░░░░░   ░░░░    ░░░░░    
  *          ;;;  ███ ░███                                       
  *          ;;  ░░██████
  *           ;   ░░░░░░
  */
 
-#ifndef __LYSET__
-#define __LYSET__
+#ifndef __LYBKT__
+#define __LYBKT__
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 
 typedef struct Node Node_t;
-typedef struct LySET LySET_t;
+typedef struct LyBKT LyBKT_t;
 
 typedef enum {
 	MetaType_Null = 0,
@@ -79,31 +79,31 @@ struct Node {
 	Node_t *next;		///< 后驱节点
 };
 
-// 集合
-struct LySET {
-	uint8_t count;   	///< 集合中项的实际数量
+// 桶
+struct LyBKT {
+	uint8_t count;   	///< 桶中项的实际数量
 	
-	Node_t *head_item;	///< 指向集合首成员
-	Node_t *tail_item;	///< 指向集合尾成员
+	Node_t *head_item;	///< 指向桶首成员
+	Node_t *tail_item;	///< 指向桶尾成员
 };
 
 /// @brief 模拟键值对存/取
-#define LYSET_KV_PUT(set, name, item) \
-	lyset_put(set, name, item, MetaType_Null, NULL, 0)
-#define LYSET_KV_GET(set, name) \
-	lyset_get(set, name)->item
+#define LYBKT_KV_PUT(bucket, name, item) \
+	lybkt_put(bucket, name, item, MetaType_Null, NULL, 0)
+#define LYBKT_KV_GET(bucket, name) \
+	lybkt_get(bucket, name)->item
 
 /**
- * @brief 创建一个集合
+ * @brief 创建一个桶
  *
- * @return LySET_t* 集合指针
+ * @return LyBKT_t* 桶指针
  */
-LySET_t *lyset_create(void);
+LyBKT_t *lybkt_create(void);
 
 /**
- * @brief 将一个项放到集合中
+ * @brief 将一个项放到桶中
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @param item 项
  * @param mtype 元属性
@@ -113,79 +113,79 @@ LySET_t *lyset_create(void);
  * 
  * @note 有同名则替换，无同名则增加
  */
-Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize);
+Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize);
 
 /**
- * @brief 获取集合中的节点
+ * @brief 获取桶中的节点
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @return Node_t* 节点指针
  */
-Node_t *lyset_get(LySET_t *set, const char *const name);
+Node_t *lybkt_get(LyBKT_t *bucket, const char *const name);
 
 /**
- * @brief 修改集合中的索引名
+ * @brief 修改桶中的索引名
  * 
- * @param set 集合
+ * @param bucket 桶
  * @param old_name 旧的索引名
  * @param new_name 新的索引名
  * @return bool 是否成功修改
  */
-bool lyset_patch_name(LySET_t *set, const char *const old_name, const char *const new_name);
+bool lybkt_patch_name(LyBKT_t *bucket, const char *const old_name, const char *const new_name);
 
 /**
- * @brief 修改集合中的项指针
+ * @brief 修改桶中的项指针
  * 
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @param item 项
  * @return bool 是否成功修改
  */
-bool lyset_patch_item(LySET_t *set, const char *const name, void *item);
+bool lybkt_patch_item(LyBKT_t *bucket, const char *const name, void *item);
 
 /**
- * @brief 修改集合中的元数据
+ * @brief 修改桶中的元数据
  * 
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @param meta 元数据
  * @return bool 是否成功修改
  */
-bool lyset_patch_meta(LySET_t *set, const char *const name, struct Meta meta);
+bool lybkt_patch_meta(LyBKT_t *bucket, const char *const name, struct Meta meta);
 
 /**
- * @brief 从集合中移除项但不释放
+ * @brief 从桶中移除项但不释放
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @return Node_t* 被移除的项
  */
-Node_t *lyset_remove(LySET_t *set, const char *const name);
+Node_t *lybkt_remove(LyBKT_t *bucket, const char *const name);
 
 /**
- * @brief 删除集合中的节点
+ * @brief 删除桶中的节点
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @return bool 是否成功修改
  */
-bool lyset_delete_note(LySET_t *set, const char *const name);
+bool lybkt_delete_note(LyBKT_t *bucket, const char *const name);
 
 /**
- * @brief 销毁指定的集合
+ * @brief 销毁指定的桶
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 项的索引名
  */
-void lyset_delete(LySET_t *set);
+void lybkt_delete(LyBKT_t *bucket);
 
 
 /* ----------------------------------- 慎用 ----------------------------------- */
 /**
- * @brief 将一个项添加到集合
+ * @brief 将一个项添加到桶
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @param item 项
  * @param meta 元数据
@@ -194,12 +194,12 @@ void lyset_delete(LySET_t *set);
  * 
  * @note 可能造成索引名重复，不推荐用户直接使用该函数
  */
-Node_t *lyset_post(LySET_t *set, const char *const name, void *item, struct Meta meta, bool at_head);
+Node_t *lybkt_post(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, bool at_head);
 
 /**
- * @brief 将一个项添加到集合
+ * @brief 将一个项添加到桶
  *
- * @param set 集合
+ * @param bucket 桶
  * @param name 索引名
  * @param item 项
  * @param meta 元数据
@@ -209,6 +209,6 @@ Node_t *lyset_post(LySET_t *set, const char *const name, void *item, struct Meta
  * 
  * @note 可能造成索引名重复，不推荐用户直接使用该函数
  */
-Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before);
+Node_t *lybkt_insert(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before);
 
-#endif        /* __LYSET__ */
+#endif        /* __LYBKT__ */
