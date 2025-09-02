@@ -55,27 +55,43 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef struct LyItem LyItem_t;
+typedef struct Node Node_t;
 typedef struct LySET LySET_t;
 
-// 包装项
-struct LyItem {
-	void *item;			///< 项
-	const char *name;	///< 名称
-	size_t size;		///< 项大小（0为无效值）
-	void* attach;		///< 附带其他属性
+typedef enum {
+	MetaType_Null = 0,
+	MetaType_Copy,
+	MetaType_Attach,
+} MetaType_t;
+
+// 节点
+struct Node {
+	const char *name;	///< 索引名
+	void *item;			///< 项指针
+	/// @note 所有元数据均为拷贝存储
+	struct Meta{
+		MetaType_t type;///< 元数据类型
+		void *data;		///< 元数据（项副本/ 附属数据）
+		size_t size;	///< 元数据大小
+	} meta;
 	
-	LyItem_t *next;		///< 指向下一个项
+	Node_t *prev;		///< 前驱节点
+	Node_t *next;		///< 后驱节点
 };
 
 // 集合
 struct LySET {
 	uint8_t count;   	///< 集合中项的实际数量
 	
-	LyItem_t *head_item;///< 指向集合首成员
-	LyItem_t *tail_item;///< 指向集合尾成员
+	Node_t *head_item;	///< 指向集合首成员
+	Node_t *tail_item;	///< 指向集合尾成员
 };
 
+/// @brief 模拟键值对存/取
+#define LYSET_PUT_KV(set, name, item) \
+	lyset_put(set, name, item, MetaType_Null, NULL, 0)
+#define LYSET_GET_KV(set, name) \
+	lyset_get(set, name)->item
 
 /**
  * @brief 创建一个集合
@@ -88,74 +104,73 @@ LySET_t *lyset_create(void);
  * @brief 将一个项放到集合中
  *
  * @param set 集合
- * @param name 项的索引名
+ * @param name 索引名
  * @param item 项
- * @param size 项大小（单位：字节）
- * @param attach 附带属性
- * @return LyItem_t* 生成的包装项
+ * @param mtype 元属性
+ * @param mdata 元数据
+ * @param msize 元大小
+ * @return Node_t* 生成的节点指针
  * 
  * @note 有同名则替换，无同名则增加
  */
-LyItem_t *lyset_put(LySET_t *set, const char *const name, void *item, size_t size, void *attach);
+Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize);
 
 /**
- * @brief 将一个项放到集合中（不带任何属性）
- * 
+ * @brief 获取集合中的节点
+ *
  * @param set 集合
- * @param name 项的索引名
- * @param item 项
- * @return LyItem_t* 生成的包装项
- * 
- * @note 这个函数就是实现单纯的键值对功能
+ * @param name 索引名
+ * @return Node_t* 节点指针
  */
-LyItem_t *lyset_put_simple(LySET_t *set, const char *const name, void *item);
+Node_t *lyset_get(LySET_t *set, const char *const name);
 
 /**
- * @brief 修改集合中的项
+ * @brief 修改集合中的索引名
  * 
  * @param set 集合
- * @param name 项的索引名
- * @param item 项
- * @param size 项大小（单位：字节）
+ * @param old_name 旧的索引名
+ * @param new_name 新的索引名
  * @return bool 是否成功修改
  */
-bool lyset_patch_item(LySET_t *set, const char *const name, void *item, size_t size);
+bool lyset_patch_name(LySET_t *set, const char *const old_name, const char *const new_name);
 
 /**
- * @brief 修改集合中的项属性
+ * @brief 修改集合中的项指针
  * 
  * @param set 集合
- * @param name 项的索引名
- * @param attach 附加属性
+ * @param name 索引名
+ * @param item 项
  * @return bool 是否成功修改
  */
-bool lyset_patch_attach(LySET_t *set, const char *const name, void *attach);
+bool lyset_patch_item(LySET_t *set, const char *const name, void *item);
 
 /**
- * @brief 获取集合中的包装项
- *
+ * @brief 修改集合中的元数据
+ * 
  * @param set 集合
- * @param name 项的索引名
- * @return LyItem_t* 包装项
+ * @param name 索引名
+ * @param meta 元数据
+ * @return bool 是否成功修改
  */
-LyItem_t *lyset_get(LySET_t *set, const char *const name);
+bool lyset_patch_meta(LySET_t *set, const char *const name, struct Meta meta);
 
 /**
- * @brief 获取集合中的指定项
+ * @brief 从集合中移除项但不释放
  *
  * @param set 集合
- * @param name 项的索引名
- * @return void* 项
+ * @param name 索引名
+ * @return Node_t* 被移除的项
  */
-void *lyset_get_item(LySET_t *set, const char *const name);
+Node_t *lyset_remove(LySET_t *set, const char *const name);
 
 /**
- * @brief 清除集合中的指定项
+ * @brief 删除集合中的节点
  *
  * @param set 集合
- * @param name 项的索引名
+ * @param name 索引名
+ * @return bool 是否成功修改
  */
-void lyset_clear(LySET_t *set, const char *const name);
+bool lyset_delete_note(LySET_t *set, const char *const name);
 
 /**
  * @brief 销毁指定的集合

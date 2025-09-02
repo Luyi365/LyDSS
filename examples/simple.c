@@ -18,13 +18,13 @@ int simple()
 	int a = 5, b = 10;
 	LySET_t *set = lyset_create();
 	
-	lyset_put_simple(set, "TEST1", &a);
+	LYSET_PUT_KV(set, "TEST1", &a);
 	
-	printf("TEST1 = %d\n", *(int*)(lyset_get_item(set, "TEST1")));
+	printf("TEST1 = %d\n", *(int*)(LYSET_GET_KV(set, "TEST1")));
 	
-	lyset_put_simple(set, "TEST1", &b);
+	LYSET_PUT_KV(set, "TEST1", &b);
 	
-	printf("TEST1 = %d\n", *(int*)(lyset_get_item(set, "TEST1")));
+	printf("TEST1 = %d\n", *(int*)(LYSET_GET_KV(set, "TEST1")));
 	
 	return 0;
 }
