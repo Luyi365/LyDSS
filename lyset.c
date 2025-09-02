@@ -28,10 +28,10 @@
  * LySET的核心是list + table结构，并引入RESET接口请求方法
  *
  *
- *  ------------------
+ *  -------------------
  * /  如果代码有帮助到你  \
  * \  也请作者喝杯咖啡吧  /
- *  ------------------
+ *  -------------------
  *      \   (__)
  *       \  /oo|\_______
  *         (_"_)\  牛码  )\/\
@@ -55,51 +55,6 @@
 
 static void *_memdup(const void *src, size_t size);
 static void _lyset_remove_node(LySET_t *set, Node_t *node);
-static Node_t *lyset_post(LySET_t *set, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize);
-
-/// @brief 将一个项添加到集合
-/// @note 不检查索引名
-static Node_t *lyset_post(LySET_t *set, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize)
-{
-	if (set == NULL) {
-		return NULL;
-	}
-	
-	Node_t *node = malloc(sizeof(Node_t));
-	if (node == NULL) {
-		return NULL;
-	}
-	
-	void *tmp = NULL;
-	switch(mtype)
-	{
-	case MetaType_Null: tmp = NULL; break;
-	case MetaType_Copy: tmp = _memdup(item, msize); break;
-	case MetaType_Attach: tmp = _memdup(mdata, msize); break;
-	}
-	
-	*node = (Node_t){
-		.name = name, 
-		.item = item, 
-		.meta.type = mtype,
-		.meta.data = tmp, 
-		.meta.size = msize,
-		.prev = set->tail_item, 
-		.next = NULL
-	};
-	
-	if (set->count == 0) {
-		set->head_item = node;
-		set->tail_item = node;
-	} 
-	else {
-		set->tail_item->next = node;
-		set->tail_item = node;
-	}
-	
-	set->count++;
-	return node;
-}
 
 /// @brief 创建一个集合
 LySET_t *lyset_create(void)
@@ -118,6 +73,57 @@ LySET_t *lyset_create(void)
 	return set;
 }
 
+/// @brief 将一个项添加到集合
+Node_t *lyset_post(LySET_t *set, const char *const name, void *item, struct Meta meta, bool at_head)
+{
+	if (set == NULL) {
+		return NULL;
+	}
+	
+	Node_t *node = malloc(sizeof(Node_t));
+	if (node == NULL) {
+		return NULL;
+	}
+	
+	void *tmp = NULL;
+	switch(meta.type)
+	{
+		case MetaType_Null: tmp = NULL; break;
+		case MetaType_Copy: tmp = _memdup(item, meta.size); break;
+		case MetaType_Attach: tmp = _memdup(meta.data, meta.size); break;
+	}
+	
+	*node = (Node_t){
+		.name = name, 
+		.item = item, 
+		.meta.type = meta.type,
+		.meta.data = tmp, 
+		.meta.size = meta.size,
+		.prev = NULL, 
+		.next = NULL,
+	};
+	
+	if (set->count == 0) {
+		set->head_item = node;
+		set->tail_item = node;
+	} 
+	else {
+		if(at_head == true) {
+			node->next = set->head_item;
+			set->head_item->prev = node;
+			set->head_item = node;
+		}
+		else {
+			node->prev = set->tail_item;
+			set->tail_item->next = node;
+			set->tail_item = node;
+		}
+	}
+	
+	set->count++;
+	return node;
+}
+
 /// @brief 将一个项放到集合中
 /// @note 遇到同名则替换，无同名则增加
 Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize)
@@ -130,7 +136,7 @@ Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t m
 	
 	if (cur == NULL) {
 		// 添加新项
-		cur = lyset_post(set, name, item, mtype, mdata, msize);
+		cur = lyset_post(set, name, item, (struct Meta){mtype, mdata, msize}, 0);
 	} 
 	else {
 		// 更新现有项
@@ -149,6 +155,68 @@ Node_t *lyset_put(LySET_t *set, const char *const name, void *item, MetaType_t m
 	}
 	
 	return cur;
+}
+
+/// @brief 将一个项插入到集合指定位置
+Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before)
+{
+	if (set == NULL || at_name == NULL || set->count == 0) {
+		return NULL;
+	}	
+	
+	Node_t *cur = lyset_get(set, at_name);
+	if (cur != NULL) {
+		Node_t *node = malloc(sizeof(Node_t));
+		if (node == NULL) {
+			return NULL;
+		}
+		
+		void *tmp = NULL;
+		switch(meta.type)
+		{
+			case MetaType_Null: tmp = NULL; break;
+			case MetaType_Copy: tmp = _memdup(item, meta.size); break;
+			case MetaType_Attach: tmp = _memdup(meta.data, meta.size); break;
+		}
+		
+		*node = (Node_t){
+			.name = name, 
+			.item = item, 
+			.meta.type = meta.type,
+			.meta.data = tmp, 
+			.meta.size = meta.size,
+			.prev = NULL, 
+			.next = NULL,
+		};
+		
+		if (at_before == true) {
+			if(cur->prev == NULL || cur == set->head_item) {
+				set->head_item = node;
+			}
+			else {
+				node->prev = cur->prev;
+				cur->prev->next = node;
+			}
+			node->next = cur;
+			cur->prev = node;
+		}
+		else {
+			if(cur->next == NULL || cur == set->tail_item) {
+				set->tail_item = node;
+			}
+			else {
+				node->next = cur->next;
+				cur->next->prev = node;
+			}
+			node->prev = cur;
+			cur->next = node;
+		}
+		
+		set->count++;
+		return node;
+	}
+	
+	return NULL;
 }
 
 /// @brief 获取集合中的节点
@@ -235,6 +303,9 @@ Node_t *lyset_remove(LySET_t *set, const char *const name)
 	Node_t *cur = lyset_get(set, name);
 	if (cur != NULL) {
 		_lyset_remove_node(set, cur);
+		// 断开与链表的连接
+		cur->prev = NULL;
+		cur->next = NULL;
 	}
 	
 	return cur;
@@ -314,10 +385,8 @@ static void _lyset_remove_node(LySET_t *set, Node_t *node)
 		set->tail_item = node->prev;
 	}
 	
-	// 断开与链表的连接
-	node->prev = NULL;
-	node->next = NULL;
-	
 	// 更新计数器
 	set->count--;
 }
+
+

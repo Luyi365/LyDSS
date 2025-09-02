@@ -28,10 +28,10 @@
  * LySET的核心是list + table结构，并引入RESET接口请求方法
  *
  *
- *  ------------------
+ *  -------------------
  * /  如果代码有帮助到你  \
  * \  也请作者喝杯咖啡吧  /
- *  ------------------
+ *  -------------------
  *      \   (__)
  *       \  /oo|\_______
  *         (_"_)\  牛码  )\/\
@@ -88,9 +88,9 @@ struct LySET {
 };
 
 /// @brief 模拟键值对存/取
-#define LYSET_PUT_KV(set, name, item) \
+#define LYSET_KV_PUT(set, name, item) \
 	lyset_put(set, name, item, MetaType_Null, NULL, 0)
-#define LYSET_GET_KV(set, name) \
+#define LYSET_KV_GET(set, name) \
 	lyset_get(set, name)->item
 
 /**
@@ -179,5 +179,36 @@ bool lyset_delete_note(LySET_t *set, const char *const name);
  * @param name 项的索引名
  */
 void lyset_delete(LySET_t *set);
+
+
+/* ----------------------------------- 慎用 ----------------------------------- */
+/**
+ * @brief 将一个项添加到集合
+ *
+ * @param set 集合
+ * @param name 索引名
+ * @param item 项
+ * @param meta 元数据
+ * @param at_head 是否从头部节点写入（默认尾部写入）
+ * @return Node_t* 生成的节点指针
+ * 
+ * @note 可能造成索引名重复，不推荐用户直接使用该函数
+ */
+Node_t *lyset_post(LySET_t *set, const char *const name, void *item, struct Meta meta, bool at_head);
+
+/**
+ * @brief 将一个项添加到集合
+ *
+ * @param set 集合
+ * @param name 索引名
+ * @param item 项
+ * @param meta 元数据
+ * @param at_name 定位索引名
+ * @param at_before 是否在定位名之前写入（默认在之后写入）
+ * @return Node_t* 生成的节点指针
+ * 
+ * @note 可能造成索引名重复，不推荐用户直接使用该函数
+ */
+Node_t *lyset_insert(LySET_t *set, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before);
 
 #endif        /* __LYSET__ */
