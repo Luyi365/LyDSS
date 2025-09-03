@@ -87,12 +87,7 @@ struct LyBKT {
 	Node_t *tail_item;	///< 指向桶尾成员
 };
 
-/// @brief 模拟键值对存/取
-#define LYBKT_KV_PUT(bucket, name, item) \
-	lybkt_put(bucket, name, item, MetaType_Null, NULL, 0)
-#define LYBKT_KV_GET(bucket, name) \
-	lybkt_get(bucket, name)->item
-
+/* ---------------------------------- 检查索引名 --------------------------------- */
 /**
  * @brief 创建一个桶
  *
@@ -106,14 +101,21 @@ LyBKT_t *lybkt_create(void);
  * @param bucket 桶
  * @param name 索引名
  * @param item 项
- * @param mtype 元属性
- * @param mdata 元数据
- * @param msize 元大小
+ * @param meta 元数据
  * @return Node_t* 生成的节点指针
  * 
  * @note 有同名则替换，无同名则增加
  */
-Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize);
+Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta);
+
+/**
+ * @brief 得到最近的一个节点
+ *
+ * @param bucket 桶
+ * @param at_tail 是否从尾部节点检索（默认从头部检索）
+ * @return Node_t* 的节点指针
+ */
+Node_t *lybkt_head(LyBKT_t *bucket, bool at_tail);
 
 /**
  * @brief 获取桶中的节点
@@ -164,13 +166,21 @@ bool lybkt_patch_meta(LyBKT_t *bucket, const char *const name, struct Meta meta)
 Node_t *lybkt_remove(LyBKT_t *bucket, const char *const name);
 
 /**
+ * @brief 从桶中移除一个节点
+ *
+ * @param bucket 桶
+ * @param node 节点指针
+ */
+void lybkt_remove_node(LyBKT_t *bucket, Node_t *node);
+
+/**
  * @brief 删除桶中的节点
  *
  * @param bucket 桶
  * @param name 索引名
  * @return bool 是否成功修改
  */
-bool lybkt_delete_note(LyBKT_t *bucket, const char *const name);
+bool lybkt_erase(LyBKT_t *bucket, const char *const name);
 
 /**
  * @brief 销毁指定的桶
@@ -181,7 +191,7 @@ bool lybkt_delete_note(LyBKT_t *bucket, const char *const name);
 void lybkt_delete(LyBKT_t *bucket);
 
 
-/* ----------------------------------- 慎用 ----------------------------------- */
+/* -------------------------------- 不检查索引名，慎用 ------------------------------- */
 /**
  * @brief 将一个项添加到桶
  *

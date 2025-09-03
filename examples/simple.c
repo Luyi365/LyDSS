@@ -12,19 +12,21 @@
 
 #include <stdio.h>
 #include "../lybkt.h"
+#include "../lybkt_api.h"
 
 int simple()
 {
 	int a = 5, b = 10;
-	LyBKT_t *bucket = lybkt_create();
+	int c = 0, d = 0;
+	LyBKT_t *bucket = set_create();
 	
-	LYBKT_KV_PUT(bucket, "TEST1", &a);
+	SET_ADD(bucket, a);
+	SET_ADD(bucket, b);
+	set_take(bucket, &c);
+	set_take(bucket, &d);
 	
-	printf("TEST1 = %d\n", *(int*)(LYBKT_KV_GET(bucket, "TEST1")));
-	
-	LYBKT_KV_PUT(bucket, "TEST1", &b);
-	
-	printf("TEST1 = %d\n", *(int*)(LYBKT_KV_GET(bucket, "TEST1")));
+	printf("TEST1 = %d\n", c);
+	printf("TEST1 = %d\n", d);
 	
 	return 0;
 }

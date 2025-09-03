@@ -54,8 +54,8 @@
 #include "lybkt.h"
 
 static void *_memdup(const void *src, size_t size);
-static void _lybkt_remove_node(LyBKT_t *bucket, Node_t *node);
 
+/* ---------------------------------- 检查索引名 --------------------------------- */
 /// @brief 创建一个桶
 LyBKT_t *lybkt_create(void)
 {
@@ -73,62 +73,11 @@ LyBKT_t *lybkt_create(void)
 	return bucket;
 }
 
-/// @brief 将一个项添加到桶
-Node_t *lybkt_post(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, bool at_head)
-{
-	if (bucket == NULL) {
-		return NULL;
-	}
-	
-	Node_t *node = malloc(sizeof(Node_t));
-	if (node == NULL) {
-		return NULL;
-	}
-	
-	void *tmp = NULL;
-	switch(meta.type)
-	{
-		case MetaType_Null: tmp = NULL; break;
-		case MetaType_Copy: tmp = _memdup(item, meta.size); break;
-		case MetaType_Attach: tmp = _memdup(meta.data, meta.size); break;
-	}
-	
-	*node = (Node_t){
-		.name = name, 
-		.item = item, 
-		.meta.type = meta.type,
-		.meta.data = tmp, 
-		.meta.size = meta.size,
-		.prev = NULL, 
-		.next = NULL,
-	};
-	
-	if (bucket->count == 0) {
-		bucket->head_item = node;
-		bucket->tail_item = node;
-	} 
-	else {
-		if(at_head == true) {
-			node->next = bucket->head_item;
-			bucket->head_item->prev = node;
-			bucket->head_item = node;
-		}
-		else {
-			node->prev = bucket->tail_item;
-			bucket->tail_item->next = node;
-			bucket->tail_item = node;
-		}
-	}
-	
-	bucket->count++;
-	return node;
-}
-
 /// @brief 将一个项放到桶中
 /// @note 遇到同名则替换，无同名则增加
-Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, MetaType_t mtype, void *mdata, size_t msize)
+Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta)
 {
-	if (bucket == NULL) {
+	if (bucket == NULL || name == NULL) {
 		return NULL;
 	}
 	
@@ -136,87 +85,40 @@ Node_t *lybkt_put(LyBKT_t *bucket, const char *const name, void *item, MetaType_
 	
 	if (cur == NULL) {
 		// 添加新项
-		cur = lybkt_post(bucket, name, item, (struct Meta){mtype, mdata, msize}, 0);
+		cur = lybkt_post(bucket, name, item, meta, 0);
 	} 
 	else {
 		// 更新现有项
 		if(cur->meta.data != NULL) {
 			free(cur->meta.data);
 		}
-		switch(mtype)
+		switch(meta.type)
 		{
 			case MetaType_Null: cur->meta.data = NULL; break;
-			case MetaType_Copy: cur->meta.data = _memdup(item, msize); break;
-			case MetaType_Attach: cur->meta.data = _memdup(mdata, msize); break;
+			case MetaType_Copy: cur->meta.data = _memdup(item, meta.size); break;
+			case MetaType_Attach: cur->meta.data = _memdup(meta.data, meta.size); break;
 		}
 		cur->item = item;
-		cur->meta.type = mtype;
-		cur->meta.size = msize;
+		cur->meta.type = meta.type;
+		cur->meta.size = meta.size;
 	}
 	
 	return cur;
 }
 
-/// @brief 将一个项插入到桶指定位置
-Node_t *lybkt_insert(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before)
+/// @brief 得到最近的一个节点
+Node_t *lybkt_head(LyBKT_t *bucket, bool at_tail)
 {
-	if (bucket == NULL || at_name == NULL || bucket->count == 0) {
+	if(bucket == NULL) {
 		return NULL;
-	}	
-	
-	Node_t *cur = lybkt_get(bucket, at_name);
-	if (cur != NULL) {
-		Node_t *node = malloc(sizeof(Node_t));
-		if (node == NULL) {
-			return NULL;
-		}
-		
-		void *tmp = NULL;
-		switch(meta.type)
-		{
-			case MetaType_Null: tmp = NULL; break;
-			case MetaType_Copy: tmp = _memdup(item, meta.size); break;
-			case MetaType_Attach: tmp = _memdup(meta.data, meta.size); break;
-		}
-		
-		*node = (Node_t){
-			.name = name, 
-			.item = item, 
-			.meta.type = meta.type,
-			.meta.data = tmp, 
-			.meta.size = meta.size,
-			.prev = NULL, 
-			.next = NULL,
-		};
-		
-		if (at_before == true) {
-			if(cur->prev == NULL || cur == bucket->head_item) {
-				bucket->head_item = node;
-			}
-			else {
-				node->prev = cur->prev;
-				cur->prev->next = node;
-			}
-			node->next = cur;
-			cur->prev = node;
-		}
-		else {
-			if(cur->next == NULL || cur == bucket->tail_item) {
-				bucket->tail_item = node;
-			}
-			else {
-				node->next = cur->next;
-				cur->next->prev = node;
-			}
-			node->prev = cur;
-			cur->next = node;
-		}
-		
-		bucket->count++;
-		return node;
 	}
 	
-	return NULL;
+	if(at_tail == true){
+		return bucket->tail_item;
+	}
+	else{
+		return bucket->head_item;
+	}
 }
 
 /// @brief 获取桶中的节点
@@ -302,7 +204,7 @@ Node_t *lybkt_remove(LyBKT_t *bucket, const char *const name)
 	
 	Node_t *cur = lybkt_get(bucket, name);
 	if (cur != NULL) {
-		_lybkt_remove_node(bucket, cur);
+		lybkt_remove_node(bucket, cur);
 		// 断开与链表的连接
 		cur->prev = NULL;
 		cur->next = NULL;
@@ -311,8 +213,35 @@ Node_t *lybkt_remove(LyBKT_t *bucket, const char *const name)
 	return cur;
 }
 
+/// @brief 从桶中移除一个节点
+void lybkt_remove_node(LyBKT_t *bucket, Node_t *node)
+{
+	if (bucket == NULL || node == NULL) {
+		return;
+	}
+	
+	// 更新前驱节点的next指针
+	if (node->prev != NULL) {
+		node->prev->next = node->next;
+	} 
+	else {
+		bucket->head_item = node->next;
+	}
+	
+	// 更新后继节点的prev指针
+	if (node->next != NULL) {
+		node->next->prev = node->prev;
+	} 
+	else {
+		bucket->tail_item = node->prev;
+	}
+	
+	// 更新计数器
+	bucket->count--;
+}
+
 /// @brief 删除桶中的节点
-bool lybkt_delete_note(LyBKT_t *bucket, const char *const name)
+bool lybkt_erase(LyBKT_t *bucket, const char *const name)
 {
 	if (bucket == NULL || name == NULL || bucket->count == 0) {
 		return false;
@@ -347,6 +276,121 @@ void lybkt_delete(LyBKT_t *bucket)
 	free(bucket);
 }
 
+/* -------------------------------- 不检查索引名，慎用 ------------------------------- */
+/// @brief 将一个项添加到桶
+Node_t *lybkt_post(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, bool at_head)
+{
+	if (bucket == NULL) {
+		return NULL;
+	}
+	
+	Node_t *node = malloc(sizeof(Node_t));
+	if (node == NULL) {
+		return NULL;
+	}
+	
+	void *tmp = NULL;
+	switch(meta.type)
+	{
+		case MetaType_Null: tmp = NULL; break;
+		case MetaType_Copy: tmp = _memdup(item, meta.size); break;
+		case MetaType_Attach: tmp = _memdup(meta.data, meta.size); break;
+	}
+	
+	*node = (Node_t){
+		.name = name, 
+		.item = item, 
+		.meta.type = meta.type,
+		.meta.data = tmp, 
+		.meta.size = meta.size,
+		.prev = NULL, 
+		.next = NULL,
+	};
+	
+	if (bucket->count == 0) {
+		bucket->head_item = node;
+		bucket->tail_item = node;
+	} 
+	else {
+		if(at_head == true) {
+			node->next = bucket->head_item;
+			bucket->head_item->prev = node;
+			bucket->head_item = node;
+		}
+		else {
+			node->prev = bucket->tail_item;
+			bucket->tail_item->next = node;
+			bucket->tail_item = node;
+		}
+	}
+	
+	bucket->count++;
+	return node;
+}
+
+/// @brief 将一个项插入到桶指定位置
+Node_t *lybkt_insert(LyBKT_t *bucket, const char *const name, void *item, struct Meta meta, const char *const at_name, bool at_before)
+{
+	if (bucket == NULL || at_name == NULL || bucket->count == 0) {
+		return NULL;
+	}	
+	
+	Node_t *cur = lybkt_get(bucket, at_name);
+	if (cur != NULL) {
+		Node_t *node = malloc(sizeof(Node_t));
+		if (node == NULL) {
+			return NULL;
+		}
+		
+		void *tmp = NULL;
+		switch(meta.type)
+		{
+			case MetaType_Null: tmp = NULL; break;
+			case MetaType_Copy: tmp = _memdup(item, meta.size); break;
+			case MetaType_Attach: tmp = _memdup(meta.data, meta.size); break;
+		}
+		
+		*node = (Node_t){
+			.name = name, 
+			.item = item, 
+			.meta.type = meta.type,
+			.meta.data = tmp, 
+			.meta.size = meta.size,
+			.prev = NULL, 
+			.next = NULL,
+		};
+		
+		if (at_before == true) {
+			if(cur->prev == NULL || cur == bucket->head_item) {
+				bucket->head_item = node;
+			}
+			else {
+				node->prev = cur->prev;
+				cur->prev->next = node;
+			}
+			node->next = cur;
+			cur->prev = node;
+		}
+		else {
+			if(cur->next == NULL || cur == bucket->tail_item) {
+				bucket->tail_item = node;
+			}
+			else {
+				node->next = cur->next;
+				cur->next->prev = node;
+			}
+			node->prev = cur;
+			cur->next = node;
+		}
+		
+		bucket->count++;
+		return node;
+	}
+	
+	return NULL;
+}
+
+/* --------------------------------- static --------------------------------- */
 /// @brief 分配内存并复制内容（返回新分配的内存指针）
 static void *_memdup(const void *src, size_t size)
 {
@@ -361,32 +405,3 @@ static void *_memdup(const void *src, size_t size)
 	
 	return memcpy(dest, src, size);
 }
-
-/// @brief 从桶中移除一个节点
-static void _lybkt_remove_node(LyBKT_t *bucket, Node_t *node)
-{
-	if (bucket == NULL || node == NULL) {
-		return;
-	}
-	
-	// 更新前驱节点的next指针
-	if (node->prev != NULL) {
-		node->prev->next = node->next;
-	} 
-	else {
-		bucket->head_item = node->next;
-	}
-	
-	// 更新后继节点的prev指针
-	if (node->next != NULL) {
-		node->next->prev = node->prev;
-	} 
-	else {
-		bucket->tail_item = node->prev;
-	}
-	
-	// 更新计数器
-	bucket->count--;
-}
-
-
