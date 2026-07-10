@@ -1,0 +1,53 @@
+# Project: RedPandaIDE
+# Makefile created by Red Panda C++ 3.4.3279
+
+CXX      = "g++.exe"
+CC       = "gcc.exe"
+WINDRES  = "windres.exe"
+RM       = del /q /f
+CD       = cd /d
+LIBS     = "-Wl,--stack,12582912"
+INCS     = 
+CXXINCS  = 
+CXXFLAGS = $(CXXINCS) "-g3" "-fno-ms-extensions" "-pipe" "-Wall" "-Werror=return-type" "-Werror=vla" "-D_DEBUG"
+CFLAGS   = $(INCS) "-g3" "-fno-ms-extensions" "-pipe" "-Wall" "-Werror=implicit-int" "-Werror=return-type" "-Werror=vla" "-D_DEBUG"
+NASM_FLAGS   =  "-f" "elf64" "-g"
+WINDRESFLAGS = 
+RES      = RedPandaIDE_private.res
+OBJ      = ../../examples/simple.o ../../examples/stack_base_type.o ../../lybox.o ../../examples/queue_base_type.o ../../test/run_all_examples.o ../../lybox_api.o $(RES)
+BIN      = RedPandaIDE.exe
+LINKOBJ  = "../../examples/simple.o" "../../examples/stack_base_type.o" "../../lybox.o" "../../examples/queue_base_type.o" "../../test/run_all_examples.o" "../../lybox_api.o" "RedPandaIDE_private.res"
+CLEANOBJ = "..\..\examples\simple.o" "..\..\examples\stack_base_type.o" "..\..\lybox.o" "..\..\examples\queue_base_type.o" "..\..\test\run_all_examples.o" "..\..\lybox_api.o" "RedPandaIDE_private.res" "RedPandaIDE.exe"
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	-$(RM) $(CLEANOBJ) >NUL 2>&1
+
+RedPandaIDE.exe: $(OBJ)
+
+	$(CC) $(LINKOBJ) -o "RedPandaIDE.exe" $(LIBS)
+
+../../examples/simple.o: ../../examples/simple.c ../../lybox.h ../../lybox_api.h
+	$(CC) -c "../../examples/simple.c" -o "../../examples/simple.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../examples/stack_base_type.o: ../../examples/stack_base_type.c ../../lybox.h ../../lybox_api.h
+	$(CC) -c "../../examples/stack_base_type.c" -o "../../examples/stack_base_type.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../lybox.o: ../../lybox.c ../../lybox.h
+	$(CC) -c "../../lybox.c" -o "../../lybox.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../examples/queue_base_type.o: ../../examples/queue_base_type.c ../../lybox.h ../../lybox_api.h
+	$(CC) -c "../../examples/queue_base_type.c" -o "../../examples/queue_base_type.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../test/run_all_examples.o: ../../test/run_all_examples.c
+	$(CC) -c "../../test/run_all_examples.c" -o "../../test/run_all_examples.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../lybox_api.o: ../../lybox_api.c ../../lybox.h ../../lybox_api.h
+	$(CC) -c "../../lybox_api.c" -o "../../lybox_api.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+RedPandaIDE_private.res: RedPandaIDE_private.rc 
+	$(WINDRES) -i "RedPandaIDE_private.rc" --input-format=rc -o "RedPandaIDE_private.res" -O coff $(WINDRESFLAGS) 
+

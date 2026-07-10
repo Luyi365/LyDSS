@@ -51,11 +51,21 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# VSCode
-**/.vscode/
+# VisualStudioCode
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+
+# RedPandaIDE
+dev/RedPandaIDE/*.layout
+dev/RedPandaIDE/*.res
+dev/RedPandaIDE/*.debug
+dev/RedPandaIDE/*.bookmarks
 
 # Other files and folders
 out/
 build/
 CMakePresets.json
-dev/
