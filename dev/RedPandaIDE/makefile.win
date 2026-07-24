@@ -1,0 +1,47 @@
+# Project: RedPandaIDE
+# Makefile created by Red Panda C++ 3.4.3279
+
+CXX      = "g++.exe"
+CC       = "gcc.exe"
+WINDRES  = "windres.exe"
+RM       = del /q /f
+CD       = cd /d
+LIBS     = "-Wl,--stack,12582912"
+INCS     = 
+CXXINCS  = 
+CXXFLAGS = $(CXXINCS) "-g3" "-fno-ms-extensions" "-pipe" "-Wall" "-Werror=return-type" "-Werror=vla" "-D_DEBUG"
+CFLAGS   = $(INCS) "-g3" "-fno-ms-extensions" "-pipe" "-Wall" "-Werror=implicit-int" "-Werror=return-type" "-Werror=vla" "-D_DEBUG"
+NASM_FLAGS   =  "-f" "elf64" "-g"
+WINDRESFLAGS = 
+RES      = RedPandaIDE_private.res
+OBJ      = ../../examples/simple.o ../../test/run_all_examples.o ../../lybkt_api.o ../../lybkt.o $(RES)
+BIN      = RedPandaIDE.exe
+LINKOBJ  = "../../examples/simple.o" "../../test/run_all_examples.o" "../../lybkt_api.o" "../../lybkt.o" "RedPandaIDE_private.res"
+CLEANOBJ = "..\..\examples\simple.o" "..\..\test\run_all_examples.o" "..\..\lybkt_api.o" "..\..\lybkt.o" "RedPandaIDE_private.res" "RedPandaIDE.exe"
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	-$(RM) $(CLEANOBJ) >NUL 2>&1
+
+RedPandaIDE.exe: $(OBJ)
+
+	$(CC) $(LINKOBJ) -o "RedPandaIDE.exe" $(LIBS)
+
+../../examples/simple.o: ../../examples/simple.c ../../lybkt_api.h ../../lybkt.h
+	$(CC) -c "../../examples/simple.c" -o "../../examples/simple.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../test/run_all_examples.o: ../../test/run_all_examples.c
+	$(CC) -c "../../test/run_all_examples.c" -o "../../test/run_all_examples.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../lybkt_api.o: ../../lybkt_api.c ../../lybkt_api.h ../../lybkt.h
+	$(CC) -c "../../lybkt_api.c" -o "../../lybkt_api.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../lybkt.o: ../../lybkt.c ../../lybkt.h
+	$(CC) -c "../../lybkt.c" -o "../../lybkt.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+RedPandaIDE_private.res: RedPandaIDE_private.rc 
+	$(WINDRES) -i "RedPandaIDE_private.rc" --input-format=rc -o "RedPandaIDE_private.res" -O coff $(WINDRESFLAGS) 
+
