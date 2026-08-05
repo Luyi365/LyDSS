@@ -57,3 +57,18 @@ int simple()
 	
 	return 0;
 }
+
+
+#include "../lypool.h"
+
+int simple()
+{
+    int a = 5;
+    lypool_t *pool = lypool_create(10);
+
+    lypool_post(pool, "TEST1", &a);
+
+    printf("a = %d\n", *(int*)(lypool_get(pool, "TEST1")));
+
+    return 0;
+}
