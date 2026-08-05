@@ -1,0 +1,56 @@
+int simple ()
+{
+  int D.3315;
+  int a;
+  int b;
+  struct LySET_t * set;
+
+  try
+    {
+      a = 5;
+      b = 10;
+      set = lyset_create ();
+      lyset_put_simple (set, "TEST1", &a);
+      _1 = lyset_get_item (set, "TEST1");
+      _2 = MEM[(int *)_1];
+      printf ("TEST1 = %d\n", _2);
+      lyset_put_simple (set, "TEST1", &b);
+      _3 = lyset_get_item (set, "TEST1");
+      _4 = MEM[(int *)_3];
+      printf ("TEST1 = %d\n", _4);
+      D.3315 = 0;
+      return D.3315;
+    }
+  finally
+    {
+      a = {CLOBBER};
+      b = {CLOBBER};
+    }
+}
+
+
+__attribute__((unused))
+__attribute__((nonnull (1), format (gnu_printf, 1, 2)))
+int printf (const char * __format)
+{
+  int D.3318;
+  int __retval;
+  char * __local_argv;
+
+  try
+    {
+      __builtin_va_start (&__local_argv, 0);
+      __local_argv.0_1 = __local_argv;
+      _2 = __acrt_iob_func (1);
+      __retval = __mingw_vfprintf (_2, __format, __local_argv.0_1);
+      __builtin_va_end (&__local_argv);
+      D.3318 = __retval;
+      return D.3318;
+    }
+  finally
+    {
+      __local_argv = {CLOBBER};
+    }
+}
+
+

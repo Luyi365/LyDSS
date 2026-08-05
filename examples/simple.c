@@ -37,3 +37,23 @@ int simple()
 
     return 0;
 }
+
+
+#include "../lybkt.h"
+
+int simple()
+{
+	int a = 5, b = 10;
+	int c = 0, d = 0;
+	LyBKT_t *bucket = set_create();
+	
+	SET_ADD(bucket, a);
+	SET_ADD(bucket, b);
+	set_take(bucket, &c);
+	set_take(bucket, &d);
+	
+	printf("TEST1 = %d\n", c);
+	printf("TEST1 = %d\n", d);
+	
+	return 0;
+}
