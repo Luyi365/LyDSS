@@ -1,7 +1,7 @@
 [Project]
 filename = RedPandaIDE.dev
 name = RedPandaIDE
-UnitCount = 8
+UnitCount = 12
 Type = 1
 Ver = 3
 Includes = 
@@ -64,7 +64,7 @@ SyncProduct = 1
 
 
 [Unit1]
-FileName = ../../examples/queue_base_type.c
+FileName = ../../examples/queue_basic.c
 CompileCpp = 0
 Folder = 源文件
 Compile = 1
@@ -77,46 +77,7 @@ RealEncoding = UTF-8
 
 
 [Unit2]
-FileName = ../../examples/stack_base_type.c
-CompileCpp = 0
-Folder = 源文件
-Compile = 1
-Link = 1
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = ASCII
-
-
-[Unit3]
-FileName = ../../lybox.c
-CompileCpp = 0
-Folder = 源文件
-Compile = 1
-Link = 1
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = ASCII
-
-
-[Unit4]
-FileName = ../../lybox_api.h
-CompileCpp = 0
-Folder = 头文件
-Compile = 0
-Link = 0
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = ASCII
-
-
-[Unit5]
-FileName = ../../test/run_all_examples.c
+FileName = ../../src/lypool.c
 CompileCpp = 0
 Folder = 源文件
 Compile = 1
@@ -128,7 +89,33 @@ FileEncoding = PROJECT
 RealEncoding = UTF-8
 
 
-[Unit6]
+[Unit3]
+FileName = ../../inc/lydds_cfg.h
+CompileCpp = 0
+Folder = 头文件
+Compile = 0
+Link = 0
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = UTF-8
+
+
+[Unit4]
+FileName = ../../src/lyset.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
+
+
+[Unit5]
 FileName = ../../examples/simple.c
 CompileCpp = 0
 Folder = 源文件
@@ -141,21 +128,8 @@ FileEncoding = PROJECT
 RealEncoding = UTF-8
 
 
-[Unit7]
-FileName = ../../lybox_api.c
-CompileCpp = 0
-Folder = 源文件
-Compile = 1
-Link = 1
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = ASCII
-
-
-[Unit8]
-FileName = ../../lybox.h
+[Unit6]
+FileName = ../../inc/lydds_api.h
 CompileCpp = 0
 Folder = 头文件
 Compile = 0
@@ -164,7 +138,98 @@ Priority = 1000
 OverrideBuildCmd = 0
 BuildCmd = 
 FileEncoding = PROJECT
-RealEncoding = ASCII
+RealEncoding = 
+
+
+[Unit7]
+FileName = ../../examples/set_basic.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
+
+
+[Unit8]
+FileName = ../../src/lyqueue.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
+
+
+[Unit9]
+FileName = ../../test/run_simple_examples.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = UTF-8
+
+
+[Unit10]
+FileName = ../../examples/bucket_basic.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
+
+
+[Unit11]
+FileName = ../../src/lybucket.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
+
+
+[Unit12]
+FileName = ../../examples/pool_basic.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
+
+
+[Unit13]
+FileName = ../../examples/pool_basic.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = 
 
 
 [CompilerSettings]

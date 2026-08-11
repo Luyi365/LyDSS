@@ -4,7 +4,7 @@
  * @brief
  * @date 2025-01-06
  *
- * @copyright Copyright (c) 2024 Luyi_2333
+ * @copyright Copyright (c) 2026 Luyi_2333
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@
  * SOFTWARE.
  *
  * @note
- * 池，可以容纳一切事物.
  *
  *
  *  *  ------------------
@@ -51,85 +50,103 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "lypool.h"
+#include <stdint.h> 
+#include <stddef.h>
+#include <stdbool.h>
+#include "../inc/lydds_api.h"
 
-/* ---------------------------------- 核心代码 ---------------------------------- */
+struct LyPool {
+    size_t size;            ///< 池大小，也就是存放的对象数量
+    struct LyPoolItem {
+        const char *name;
+        void *object;
+    } *items;    ///< 对象
+};
+
 /// @brief 创建一个池
-lypool_t *lypool_create(size_t len)
+LyPool_t *lypool_create(size_t size)
 {
-    lypool_t *pool = NULL;
+    LyPool_t *pool = NULL;
 
-    pool = calloc(1, sizeof(lypool_t) + sizeof(struct lypool_item) * len);
-    pool->length = len;
+    pool = malloc(sizeof(LyPool_t));
+    if(pool == NULL) {
+        return NULL;
+    }
+
+    pool->items = calloc(size, sizeof(LyPoolItem_t));
+    if(pool->items == NULL) {
+        free(pool);
+        return NULL;
+    }
+
+    pool->size = size;
 
     return pool;
 }
 
-/// @brief 将一个对象引入池
-void lypool_post(lypool_t *pool, const char *const name, void *obj)
+/// @brief 创建一个静态池
+void lypool_create_static(LyPool_t *pool, LyPoolItem_t *items, size_t size)
 {
-    if(pool == NULL || name == NULL) {
+    LYDDS_ASSERT(pool);
 
-    }
-    else {
-        for(size_t i = 0; i < pool->length; i++) {
-            if(pool->items[i].name == NULL) {
-                pool->items[i].name = name;
-                pool->items[i].object = obj;
-                return;
-            }
+    pool->items = items;
+    pool->size = size;
+}
+
+/// @brief 将一个对象引入池
+void lypool_post(LyPool_t *pool, const char *const name, void *obj)
+{
+    LYDDS_ASSERT(pool);
+    LYDDS_ASSERT(name);
+
+    for(size_t i = 0; i < pool->size; i++) {
+        if(pool->items[i].name == NULL) {
+            pool->items[i].name = name;
+            pool->items[i].object = obj;
+            return;
         }
-        // TODO: 满时，需要处理
     }
+    // TODO: 满时，需要处理
 }
 
 /// @brief 获取池中的指定对象
-void *lypool_get(lypool_t *pool, const char *const name)
+void *lypool_get(LyPool_t *pool, const char *const name)
 {
-    if(pool == NULL) {
+    LYDDS_ASSERT(pool);
+    LYDDS_ASSERT(name);
 
-    }
-    else {
-        for(size_t i = 0; i < pool->length; i++) {
-            if(!strcmp(pool->items[i].name, name)) {
-                return pool->items[i].object;
-            }
+    for(size_t i = 0; i < pool->size; i++) {
+        if(!strcmp(pool->items[i].name, name)) {
+            return pool->items[i].object;
         }
-        // TODO: 找不到？
     }
+    // TODO: 找不到？
 
     return NULL;
 }
 
 /// @brief 清除池中的指定对象
-void lypool_clear(lypool_t *pool, const char *const name)
+void lypool_clear(LyPool_t *pool, const char *const name)
 {
-    if(pool == NULL) {
+    LYDDS_ASSERT(pool);
+    LYDDS_ASSERT(name);
 
-    }
-    else {
-        for(size_t i = 0; i < pool->length; i++) {
-            if(pool->items[i].name == name) {
-                pool->items[i].name = NULL;
-                pool->items[i].object = NULL;
-            }
+    for(size_t i = 0; i < pool->size; i++) {
+        if(pool->items[i].name == name) {
+            pool->items[i].name = NULL;
+            pool->items[i].object = NULL;
         }
-        // TODO: 找不到？
     }
+    // TODO: 找不到？
 }
 
 /// @brief 销毁指定的池
-void lypool_delete(lypool_t *pool)
+void lypool_delete(LyPool_t *pool)
 {
-    if(pool == NULL) {
+    LYDDS_ASSERT(pool);
 
+    for(size_t i = 0; i < pool->size; i++) {
+        lypool_clear(pool, pool->items[i].name);
     }
-    else {
-        for(size_t i = 0; i < pool->length; i++) {
-            lypool_clear(pool, pool->items[i].name);
-        }
-        free(pool);
-    }
+    free(pool);
 }
-
-/* ---------------------------------- 基本功能 ---------------------------------- */

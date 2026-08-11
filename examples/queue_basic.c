@@ -1,21 +1,21 @@
 /**
- * @file queue_base_type.c
+ * @file queue_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2025-08-06
  *
- * @copyright Copyright (c) 2025
+ * @copyright Copyright (c) 2026
  *
  * @note
  * Matters related to this document.
  */
-
+/*
 #include <stdio.h>
-#include "../lybox_api.h"
+#include "../inc/lydds_api.h"
 
 #define QUEUE_SIZE 10
 
-int queue_base_type()
+int queue_basic()
 {
     printf("Start queue api test...\n");
 
@@ -64,3 +64,4 @@ int queue_base_type()
 
     return 1;
 }
+*/

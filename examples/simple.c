@@ -11,64 +11,43 @@
  */
 
 #include <stdio.h>
-#include "../lybox_api.h"
+#include <string.h>
+#include "../inc/lydds_api.h"
 
-int simple()
+/* ---------- 哈希函数（FNV-1a） ---------- */
+static unsigned fnv1a(const void *data, size_t len)
 {
-    LyBOX_t *handle = lybox_create(10, sizeof(int));
-
-    int data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    int data2[10] = {0};
-    lybox_send(handle, data, 2, LyboxWriteMode_Default);
-    lybox_receive(handle, data, 2, LyboxReadMode_FIFO);
-
-    lybox_send(handle, data, 7, LyboxWriteMode_Default);
-    lybox_send(handle, data, 8, LyboxWriteMode_Default);
-    lybox_cover(handle, &data2[0], 3);
-    lybox_set(handle, data2, 3, 0, LyboxWriteMode_Default);
-
-    lybox_receive(handle, data2, handle->count, LyboxReadMode_FIFO);
-
-    for(int i = 0; i < 10; i++)
-    {
-        printf("%d ", data2[i]);
+    const unsigned char *p = data;
+    unsigned h = 2166136261u;
+    for(size_t i = 0; i < len; i++) {
+        h ^= p[i];
+        h *= 16777619u;
     }
-    printf("\n");
-
-    return 0;
+    return h;
 }
 
-
-#include "../lybkt.h"
+/* ---------- 默认相等比较（按字节） ---------- */
+static bool byte_equals(const void *a, const void *b)
+{
+    return memcmp(a, b, sizeof(int)) == 0; /* 示例按 int 比较 */
+}
 
 int simple()
 {
-	int a = 5, b = 10;
-	int c = 0, d = 0;
-	LyBKT_t *bucket = set_create();
-	
-	SET_ADD(bucket, a);
-	SET_ADD(bucket, b);
-	set_take(bucket, &c);
-	set_take(bucket, &d);
-	
-	printf("TEST1 = %d\n", c);
-	printf("TEST1 = %d\n", d);
-	
-	return 0;
-}
+    LySet_t *set = lyset_init(5, sizeof(int), fnv1a, byte_equals);
 
+    int a = 1, b = 2, c = 3;
+    lyset_add(set, &a);
+    lyset_add(set, &b);
+    lyset_add(set, &c);
 
-#include "../lypool.h"
-
-int simple()
-{
-    int a = 5;
-    lypool_t *pool = lypool_create(10);
-
-    lypool_post(pool, "TEST1", &a);
-
-    printf("a = %d\n", *(int*)(lypool_get(pool, "TEST1")));
+    int d = 2;
+    if(lyset_contains(set, &d)) {
+        printf("set contains %d\n", d);
+    }
+    else {
+        printf("set does not contain %d\n", d);
+    }
 
     return 0;
 }

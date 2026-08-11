@@ -1,21 +1,21 @@
 /**
- * @file stack_base_type.c
+ * @file stack_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2025-08-06
  *
- * @copyright Copyright (c) 2025
+ * @copyright Copyright (c) 2026
  *
  * @note
  * Matters related to this document.
  */
-
+/*
 #include <stdio.h>
-#include "../lybox_api.h"
+#include "../inc/lydds_api.h"
 
 #define STACK_SIZE 10
 
-int stack_base_type()
+int stack_basic()
 {
     printf("Start stack api test...\n");
 
@@ -83,3 +83,4 @@ int stack_base_type()
 
     return 1;
 }
+*/
