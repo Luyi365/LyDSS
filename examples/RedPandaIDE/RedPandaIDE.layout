@@ -1,0 +1,111 @@
+[
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/test/queue_basic.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 1,
+        "top": 120
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/inc/lydds_cfg.h",
+        "focused": false,
+        "isOpen": false,
+        "left": 0,
+        "top": 0
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/src/lyset.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 7,
+        "top": 0
+    },
+    {
+        "caretX": 6,
+        "caretY": 47,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/test/simple.c",
+        "focused": true,
+        "isOpen": true,
+        "left": 0,
+        "order": 2,
+        "top": 540
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/test/bucket_basic.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 4,
+        "top": 0
+    },
+    {
+        "caretX": 56,
+        "caretY": 11,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/src/lypool.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 0,
+        "top": 860
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/test/set_basic.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 9,
+        "top": 0
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/src/lyqueue.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 6,
+        "top": 0
+    },
+    {
+        "caretX": 1,
+        "caretY": 24,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/examples/run_simple_test.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 3,
+        "top": 180
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/src/lybucket.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 5,
+        "top": 0
+    },
+    {
+        "caretX": 1,
+        "caretY": 1,
+        "filename": "C:/Users/wzyde/Desktop/Embedded/LyDDS/test/pool_basic.c",
+        "focused": false,
+        "isOpen": true,
+        "left": 0,
+        "order": 8,
+        "top": 0
+    }
+]

@@ -17,17 +17,17 @@ int main()
 {
     int status = 0;
 
-    /** ./examples/pool_basic.c */
+    /** ./test/pool_basic.c */
     extern int pool_basic();
     status = pool_basic();
     printf("\n");
 
-    /** ./examples/queue_basic.c */
+    /** ./test/queue_basic.c */
     // extern int queue_basic();
     // status = queue_basic();
     // printf("\n");
 
-    /** ./examples/stack_basic.c */
+    /** ./test/stack_basic.c */
     // extern int stack_basic();
     // status = stack_basic();
     // printf("\n");

@@ -1,0 +1,65 @@
+# Project: RedPandaIDE
+# Makefile created by Red Panda C++ 3.4.3279
+
+CXX      = "g++.exe"
+CC       = "gcc.exe"
+WINDRES  = "windres.exe"
+RM       = del /q /f
+CD       = cd /d
+LIBS     = "-Wl,--stack,12582912"
+INCS     = 
+CXXINCS  = 
+CXXFLAGS = $(CXXINCS) "-g3" "-fno-ms-extensions" "-pipe" "-Wall" "-Werror=return-type" "-Werror=vla" "-D_DEBUG"
+CFLAGS   = $(INCS) "-g3" "-fno-ms-extensions" "-pipe" "-Wall" "-Werror=implicit-int" "-Werror=return-type" "-Werror=vla" "-D_DEBUG"
+NASM_FLAGS   =  "-f" "elf64" "-g"
+WINDRESFLAGS = 
+RES      = RedPandaIDE_private.res
+OBJ      = ../../test/queue_basic.o ../../src/lyset.o ../../test/simple.o ../../test/bucket_basic.o ../../src/lypool.o ../../test/set_basic.o ../../src/lyqueue.o ../run_simple_test.o ../../src/lybucket.o ../../test/pool_basic.o $(RES)
+BIN      = RedPandaIDE.exe
+LINKOBJ  = "../../test/queue_basic.o" "../../src/lyset.o" "../../test/simple.o" "../../test/bucket_basic.o" "../../src/lypool.o" "../../test/set_basic.o" "../../src/lyqueue.o" "../run_simple_test.o" "../../src/lybucket.o" "../../test/pool_basic.o" "RedPandaIDE_private.res"
+CLEANOBJ = "..\..\test\queue_basic.o" "..\..\src\lyset.o" "..\..\test\simple.o" "..\..\test\bucket_basic.o" "..\..\src\lypool.o" "..\..\test\set_basic.o" "..\..\src\lyqueue.o" "..\run_simple_test.o" "..\..\src\lybucket.o" "..\..\test\pool_basic.o" "RedPandaIDE_private.res" "RedPandaIDE.exe"
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	-$(RM) $(CLEANOBJ) >NUL 2>&1
+
+RedPandaIDE.exe: $(OBJ)
+
+	$(CC) $(LINKOBJ) -o "RedPandaIDE.exe" $(LIBS)
+
+../../test/queue_basic.o: ../../test/queue_basic.c
+	$(CC) -c "../../test/queue_basic.c" -o "../../test/queue_basic.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../src/lyset.o: ../../src/lyset.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../src/lyset.c" -o "../../src/lyset.o" $(CFLAGS) 
+
+../../test/simple.o: ../../test/simple.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../test/simple.c" -o "../../test/simple.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../test/bucket_basic.o: ../../test/bucket_basic.c
+	$(CC) -c "../../test/bucket_basic.c" -o "../../test/bucket_basic.o" $(CFLAGS) 
+
+../../src/lypool.o: ../../src/lypool.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../src/lypool.c" -o "../../src/lypool.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../test/set_basic.o: ../../test/set_basic.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../test/set_basic.c" -o "../../test/set_basic.o" $(CFLAGS) 
+
+../../src/lyqueue.o: ../../src/lyqueue.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../src/lyqueue.c" -o "../../src/lyqueue.o" $(CFLAGS) 
+
+../run_simple_test.o: ../run_simple_test.c
+	$(CC) -c "../run_simple_test.c" -o "../run_simple_test.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
+
+../../src/lybucket.o: ../../src/lybucket.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../src/lybucket.c" -o "../../src/lybucket.o" $(CFLAGS) 
+
+../../test/pool_basic.o: ../../test/pool_basic.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+	$(CC) -c "../../test/pool_basic.c" -o "../../test/pool_basic.o" $(CFLAGS) 
+
+RedPandaIDE_private.res: RedPandaIDE_private.rc 
+	$(WINDRES) -i "RedPandaIDE_private.rc" --input-format=rc -o "RedPandaIDE_private.res" -O coff $(WINDRESFLAGS) 
+

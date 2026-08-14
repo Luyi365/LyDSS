@@ -1,5 +1,5 @@
 /**
- * @file run_simple_examples.c
+ * @file run_simple_test.c
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief 
  * @date 2026-08-07
@@ -17,7 +17,7 @@ int main()
 {
     int status = 0;
 
-    /** ./examples/simple.c */
+    /** ./test/simple.c */
     extern int simple();
     status = simple();
     printf("\n");
