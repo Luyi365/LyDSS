@@ -14,40 +14,19 @@
 #include <string.h>
 #include "../inc/lydds_api.h"
 
-/* ---------- 哈希函数（FNV-1a） ---------- */
-static unsigned fnv1a(const void *data, size_t len)
-{
-    const unsigned char *p = data;
-    unsigned h = 2166136261u;
-    for(size_t i = 0; i < len; i++) {
-        h ^= p[i];
-        h *= 16777619u;
-    }
-    return h;
-}
-
-/* ---------- 默认相等比较（按字节） ---------- */
-static bool byte_equals(const void *a, const void *b)
-{
-    return memcmp(a, b, sizeof(int)) == 0; /* 示例按 int 比较 */
-}
-
 int simple()
 {
-    LySet_t *set = lyset_init(5, sizeof(int), fnv1a, byte_equals);
+    LyList_t *list = lylist_creatr();
 
     int a = 1, b = 2, c = 3;
-    lyset_add(set, &a);
-    lyset_add(set, &b);
-    lyset_add(set, &c);
-
-    int d = 2;
-    if(lyset_contains(set, &d)) {
-        printf("set contains %d\n", d);
+    lylist_push_tail(list, &a);
+    lylist_push_tail(list, &b);
+    lylist_push_front(list, &c);   /* 结果顺序: c -> a -> b */
+    LYLIST_FOREACH(list, it) {
+        printf("%d ", *(int *)it->data);
     }
-    else {
-        printf("set does not contain %d\n", d);
-    }
+    printf("\n");
+    lylist_destroy(list);
 
     return 0;
 }

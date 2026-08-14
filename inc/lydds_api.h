@@ -155,6 +155,108 @@ bool lyqueue_clear(LyQueue_t *queue);
  */
 bool lyqueue_is_full(LyQueue_t *queue);
 
+/* ----------------------------------- 链表 ----------------------------------- */
+struct LyListNode {
+    void *data;
+    struct LyListNode *prev;
+    struct LyListNode *next;
+};
+typedef struct LyListNode LyListNode_t;
+
+struct LyList {
+    LyListNode_t *head;
+    LyListNode_t *tail;
+};
+typedef struct LyList LyList_t;
+
+/**
+ * @brief 创建链表
+ * 
+ * @return LyList_t 链表
+ */
+LyList_t *lylist_creatr(void);
+
+/**
+ * @brief 销毁链表
+ * 
+ * @param list 链表
+ */
+void lylist_destroy(LyList_t *list);
+
+/**
+ * @brief 链表头部插入
+ * 
+ * @param list 链表
+ * @param data 数据
+ * @return LyListNode_t 生成节点
+ */
+LyListNode_t *lylist_push_front(LyList_t *list, void *data); 
+
+/**
+ * @brief 链表尾部插入
+ * 
+ * @param list 链表
+ * @param data 数据
+ * @return LyListNode_t 生成节点
+ */
+LyListNode_t *lylist_push_tail(LyList_t *list, void *data); 
+
+/**
+ * @brief 在节点前插入
+ * 
+ * @param list 链表
+ * @param node 目标节点
+ * @param data 数据
+ * @return LyListNode_t 生成节点
+ */
+LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *data);
+
+/**
+ * @brief 在节点后插入
+ * 
+ * @param list 链表
+ * @param node 目标节点
+ * @param data 数据
+ * @return LyListNode_t 生成节点
+ */
+LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data);
+
+/**
+ * @brief 弹出链表头部节点
+ * 
+ * @param list 链表
+ * @return void* 数据
+ */
+void *dlist_pop_front(LyList_t *list);
+
+/**
+ * @brief 弹出链表尾部节点
+ * 
+ * @param list 链表
+ * @return void* 数据
+ */
+void *dlist_pop_tail(LyList_t *list);
+
+/**
+ * @brief 移除节点
+ * 
+ * @param list 链表
+ * @param node 节点
+ * @param void* 数据
+ */
+void *lylist_remove(LyList_t *list, LyListNode_t *node);    
+
+/**
+ * @brief 交换节点
+ * 
+ * @param a 链表a
+ * @param b 链表b
+ */
+void lylist_swap(LyListNode_t *a, LyListNode_t *b);
+
+#define LYLIST_FOREACH(list, node) \
+    for (LyListNode_t *node = (list)->head; node; node = node->next)
+
 /* ----------------------------------- 集合 ----------------------------------- */
 enum LySetRelation {
     LySetRelation_NONE,        /* 完全不相交 */
