@@ -19,8 +19,8 @@ int list_basic()
     LyList_t *list = lylist_creatr();
 
     int a = 1, b = 2, c = 3;
-    lylist_push_tail(list, &a);
-    lylist_push_tail(list, &b);
+    lylist_push_rear(list, &a);
+    lylist_push_rear(list, &b);
     lylist_push_front(list, &c);   /* 结果顺序: c -> a -> b */
     LYLIST_FOREACH(list, it) {
         printf("%d ", *(int *)it->data);

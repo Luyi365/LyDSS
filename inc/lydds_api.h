@@ -90,27 +90,27 @@ void lypool_clear(LyPool_t *pool, const char *const name);
 void lypool_delete(LyPool_t *pool);
 
 
-/* ----------------------------------- 队列 ----------------------------------- */
+/* -------------------------------- 队列(FIFO) -------------------------------- */
 typedef struct LyQueue LyQueue_t;
 
 /**
  * @brief 创建一个队列
  *
- * @param length 队列长度
- * @param item_size 单个元素大小
+ * @param len 队列长度
+ * @param item_size 单个成员大小
  * @return LyQueue_t
  */
-LyQueue_t *lyqueue_create(unsigned long length, unsigned long item_size);
+LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size);
 
 /**
  * @brief 创建一个静态队列
  *
  * @param queue 队列
- * @param buffer 队列缓冲区
- * @param length 队列长度
- * @param item_size 单个元素大小
+ * @param buf 队列缓冲区
+ * @param len 队列长度
+ * @param item_size 单个成员大小
  */
-void lyqueue_create_static(LyQueue_t *queue, void *buffer, unsigned long length, unsigned long item_size);
+void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsigned long item_size);
 
 /**
  * @brief 数据入队
@@ -125,19 +125,19 @@ bool lyqueue_send(LyQueue_t *queue, void *item);
  * @brief 数据出队
  *
  * @param queue 队列
- * @param buff 缓冲区
+ * @param buf 缓冲区
  * @return true 出队成功，false 出队失败
  */
-bool lyqueue_receive(LyQueue_t *queue, void *buff);
+bool lyqueue_receive(LyQueue_t *queue, void *buf);
 
 /**
  * @brief 预读队列数据
  *
  * @param queue 队列
- * @param buff 缓冲区
+ * @param buf 缓冲区
  * @return true 预读成功，false 预读失败
  */
-bool lyqueue_peek(LyQueue_t *queue, void *buff);
+bool lyqueue_peek(LyQueue_t *queue, void *buf);
 
 /**
  * @brief 清空队列
@@ -148,12 +148,125 @@ bool lyqueue_peek(LyQueue_t *queue, void *buff);
 bool lyqueue_clear(LyQueue_t *queue);
 
 /**
+ * @brief 删除队列
+ *
+ * @param queue 队列
+ * @return true 删除成功，false 删除失败
+ */
+void lyqueue_delete(LyQueue_t *queue);
+
+/**
+ * @brief 获取队列中当前的成员个数
+ *
+ * @param queue 队列
+ * @return 成员个数
+ */
+unsigned long lyqueue_count(LyQueue_t *queue);
+
+/**
+ * @brief 判断队列是否为空
+ *
+ * @param queue 队列
+ * @return true 为空，false 不为空
+ */
+bool lyqueue_is_empty(LyQueue_t *queue);
+
+/**
  * @brief 判断队列是否已满
  *
  * @param queue 队列
  * @return true 已满，false 未满
  */
 bool lyqueue_is_full(LyQueue_t *queue);
+
+/* --------------------------------- 栈(FILO) -------------------------------- */
+typedef struct LyStack LyStack_t;
+
+/**
+ * @brief 创建一个栈
+ *
+ * @param len 栈长度
+ * @param item_size 单个成员大小
+ * @return LyStack_t
+ */
+LyStack_t *lystack_create(unsigned long len, unsigned long item_size);
+
+/**
+ * @brief 创建一个静态栈
+ *
+ * @param stack 栈
+ * @param buf 栈缓冲区
+ * @param len 栈长度
+ * @param item_size 单个成员大小
+ */
+void lystack_create_static(LyStack_t *stack, void *buf, unsigned long len, unsigned long item_size);
+
+/**
+ * @brief 数据入栈
+ *
+ * @param stack 栈
+ * @param item 数据项
+ * @return true 入栈成功，false 入栈失败
+ */
+bool lystack_push(LyStack_t *stack, void *item);
+
+/**
+ * @brief 数据出栈
+ *
+ * @param stack 栈
+ * @param buf 缓冲区
+ * @return true 出栈成功，false 出栈失败
+ */
+bool lystack_pop(LyStack_t *stack, void *buf);
+
+/**
+ * @brief 预读栈数据
+ *
+ * @param stack 栈
+ * @param buf 缓冲区
+ * @return true 预读成功，false 预读失败
+ */
+bool lystack_peek(LyStack_t *stack, void *buf);
+
+/**
+ * @brief 清空栈
+ *
+ * @param stack 栈
+ * @return true 清空成功，false 清空失败
+ */
+bool lystack_clear(LyStack_t *stack);
+
+/**
+ * @brief 删除栈
+ *
+ * @param stack 栈
+ * @return true 删除成功，false 删除失败
+ */
+void lystack_delete(LyStack_t *stack);
+
+/**
+ * @brief 获取栈中当前的成员个数
+ *
+ * @param stack 栈
+ * @return 成员个数
+ */
+unsigned long lystack_count(LyStack_t *stack);
+
+/**
+ * @brief 判断栈是否为空
+ *
+ * @param stack 队列
+ * @return true 为空，false 不为空
+ */
+bool lystack_is_empty(LyStack_t *stack);
+
+/**
+ * @brief 判断栈是否已满
+ *
+ * @param stack 队列
+ * @return true 已满，false 未满
+ */
+bool lystack_is_full(LyStack_t *stack);
 
 /* ----------------------------------- 链表 ----------------------------------- */
 struct LyListNode {
@@ -199,7 +312,7 @@ LyListNode_t *lylist_push_front(LyList_t *list, void *data);
  * @param data 数据
  * @return LyListNode_t 生成节点
  */
-LyListNode_t *lylist_push_tail(LyList_t *list, void *data); 
+LyListNode_t *lylist_push_rear(LyList_t *list, void *data); 
 
 /**
  * @brief 在节点前插入
@@ -227,7 +340,7 @@ LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data
  * @param list 链表
  * @return void* 数据
  */
-void *dlist_pop_front(LyList_t *list);
+void *lylist_pop_front(LyList_t *list);
 
 /**
  * @brief 弹出链表尾部节点
@@ -235,7 +348,7 @@ void *dlist_pop_front(LyList_t *list);
  * @param list 链表
  * @return void* 数据
  */
-void *dlist_pop_tail(LyList_t *list);
+void *lylist_pop_rear(LyList_t *list);
 
 /**
  * @brief 移除节点
@@ -256,6 +369,12 @@ void lylist_swap(LyListNode_t *a, LyListNode_t *b);
 
 #define LYLIST_FOREACH(list, node) \
     for (LyListNode_t *node = (list)->head; node; node = node->next)
+
+/* ------------------------------------ 流 ----------------------------------- */
+typedef enum LySetRelation LySetRelation_t;
+
+typedef unsigned char cell_t;     ///< 默认以字节为单位
+typedef struct LyStream LyStream_t;
 
 /* ----------------------------------- 集合 ----------------------------------- */
 enum LySetRelation {

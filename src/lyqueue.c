@@ -32,37 +32,34 @@ struct LyQueue {
 };
 
 /// @brief 创建一个队列
-LyQueue_t *lyqueue_create(unsigned long length, unsigned long item_size)
+LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size)
 {
     LYDDS_ASSERT(item_size);
 
     LyQueue_t *queue = malloc(sizeof(LyQueue_t));
-
-    queue->length = length;
+    queue->length = len;
     queue->item_size = item_size;
     queue->en_index = 0;
     queue->de_index = 0;
     queue->count = 0;
-
-    queue->items = calloc(length, item_size);
+    queue->items = calloc(len, item_size);
 
     return queue;
 }
 
 /// @brief 创建一个静态队列
-void lyqueue_create_static(LyQueue_t *queue, void *buffer, unsigned long length, unsigned long item_size)
+void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsigned long item_size)
 {
     LYDDS_ASSERT(queue);
-    LYDDS_ASSERT(buffer);
+    LYDDS_ASSERT(buf);
     LYDDS_ASSERT(item_size);
 
-    queue->length = length;
+    queue->length = len;
     queue->item_size = item_size;
     queue->en_index = 0;
     queue->de_index = 0;
     queue->count = 0;
-
-    queue->items = buffer;
+    queue->items = buf;
 }
 
 /// @brief 数据入队
@@ -79,12 +76,12 @@ bool lyqueue_send(LyQueue_t *queue, void *item)
 }
 
 /// @brief 数据出队
-bool lyqueue_receive(LyQueue_t *queue, void *buff)
+bool lyqueue_receive(LyQueue_t *queue, void *buf)
 {
     LYDDS_ASSERT(queue);
-    LYDDS_ASSERT(buff);
+    LYDDS_ASSERT(buf);
 
-    memcpy(buff, queue->items + queue->de_index * queue->item_size, queue->item_size);
+    memcpy(buf, queue->items + queue->de_index * queue->item_size, queue->item_size);
     queue->de_index = (queue->de_index + 1) % queue->length;
     queue->count--;
 
@@ -92,12 +89,12 @@ bool lyqueue_receive(LyQueue_t *queue, void *buff)
 }
 
 /// @brief 预读队列数据
-bool lyqueue_peek(LyQueue_t *queue, void *buff)
+bool lyqueue_peek(LyQueue_t *queue, void *buf)
 {
     LYDDS_ASSERT(queue);
-    LYDDS_ASSERT(buff);
+    LYDDS_ASSERT(buf);
 
-    memcpy(buff, queue->items + queue->de_index * queue->item_size, queue->item_size);
+    memcpy(buf, queue->items + queue->de_index * queue->item_size, queue->item_size);
 
     return true;
 }
@@ -121,6 +118,22 @@ void lyqueue_delete(LyQueue_t *queue)
 
     free(queue->items);
     free(queue);
+}
+
+/// @brief 获取队列中当前的成员个数
+unsigned long lyqueue_count(LyQueue_t *queue)
+{
+    LYDDS_ASSERT(queue);
+
+    return queue->count;
+}
+
+/// @brief 判断队列是否为空
+bool lyqueue_is_empty(LyQueue_t *queue)
+{
+    LYDDS_ASSERT(queue);
+
+    return queue->count == 0;
 }
 
 /// @brief 判断队列是否已满

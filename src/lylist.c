@@ -59,7 +59,7 @@ LyListNode_t *lylist_push_front(LyList_t *list, void *data)
 }
 
 /// @brief 链表尾部插入节点
-LyListNode_t *lylist_push_tail(LyList_t *list, void *data)
+LyListNode_t *lylist_push_rear(LyList_t *list, void *data)
 {
     LYDDS_ASSERT(list);
 
@@ -120,15 +120,15 @@ void *lylist_pop_front(LyList_t *list)
 {
     LYDDS_ASSERT(list);
 
-    return dlist_remove(list, list->head);
+    return lylist_remove(list, list->head);
 }
 
 /// @brief 弹出链表尾部节点
-void *lylist_pop_tail(LyList_t *list)
+void *lylist_pop_rear(LyList_t *list)
 {
     LYDDS_ASSERT(list);
 
-    return dlist_remove(list, list->tail);
+    return lylist_remove(list, list->tail);
 }
 
 /// @brief 移除节点

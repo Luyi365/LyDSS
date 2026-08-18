@@ -6,15 +6,16 @@ file(GLOB_RECURSE SOURCES_TEST test/*.c)
 
 add_library(LyPOOL src/lypool.c)
 add_library(LyQUEUE src/lyqueue.c)
+add_library(LySTACK src/lystack.c)
 add_library(LyLIST src/lylist.c)
 add_library(LySET src/lyset.c)
 add_library(LyBucket src/lybucket.c)
 
 add_executable(LyDDS_SimpleTest examples/run_simple_test.c test/simple.c)
-target_link_libraries(LyDDS_SimpleTest LyPOOL LyQUEUE LyLIST LySET LyBucket)
+target_link_libraries(LyDDS_SimpleTest LyPOOL LyQUEUE LySTACK LyLIST LySET LyBucket)
 
 add_executable(LyDDS_AllBasicTest examples/run_all_basic_test.c ${SOURCES_TEST})
-target_link_libraries(LyDDS_AllBasicTest LyPOOL LyQUEUE LyLIST LySET LyBucket)
+target_link_libraries(LyDDS_AllBasicTest LyPOOL LyQUEUE LySTACK LyLIST LySET LyBucket)
 
 include(CTest)
 enable_testing()
