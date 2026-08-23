@@ -269,12 +269,11 @@ bool lystack_is_empty(LyStack_t *stack);
 bool lystack_is_full(LyStack_t *stack);
 
 /* ----------------------------------- 链表 ----------------------------------- */
-struct LyListNode {
+typedef struct LyListNode {
     void *data;
     struct LyListNode *prev;
     struct LyListNode *next;
-};
-typedef struct LyListNode LyListNode_t;
+} LyListNode_t;
 
 struct LyList {
     LyListNode_t *head;
@@ -284,39 +283,39 @@ typedef struct LyList LyList_t;
 
 /**
  * @brief 创建链表
- * 
+ *
  * @return LyList_t 链表
  */
 LyList_t *lylist_creatr(void);
 
 /**
  * @brief 销毁链表
- * 
+ *
  * @param list 链表
  */
 void lylist_destroy(LyList_t *list);
 
 /**
  * @brief 链表头部插入
- * 
+ *
  * @param list 链表
  * @param data 数据
  * @return LyListNode_t 生成节点
  */
-LyListNode_t *lylist_push_front(LyList_t *list, void *data); 
+LyListNode_t *lylist_push_front(LyList_t *list, void *data);
 
 /**
  * @brief 链表尾部插入
- * 
+ *
  * @param list 链表
  * @param data 数据
  * @return LyListNode_t 生成节点
  */
-LyListNode_t *lylist_push_rear(LyList_t *list, void *data); 
+LyListNode_t *lylist_push_rear(LyList_t *list, void *data);
 
 /**
  * @brief 在节点前插入
- * 
+ *
  * @param list 链表
  * @param node 目标节点
  * @param data 数据
@@ -326,7 +325,7 @@ LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *dat
 
 /**
  * @brief 在节点后插入
- * 
+ *
  * @param list 链表
  * @param node 目标节点
  * @param data 数据
@@ -336,7 +335,7 @@ LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data
 
 /**
  * @brief 弹出链表头部节点
- * 
+ *
  * @param list 链表
  * @return void* 数据
  */
@@ -344,7 +343,7 @@ void *lylist_pop_front(LyList_t *list);
 
 /**
  * @brief 弹出链表尾部节点
- * 
+ *
  * @param list 链表
  * @return void* 数据
  */
@@ -352,16 +351,16 @@ void *lylist_pop_rear(LyList_t *list);
 
 /**
  * @brief 移除节点
- * 
+ *
  * @param list 链表
  * @param node 节点
  * @param void* 数据
  */
-void *lylist_remove(LyList_t *list, LyListNode_t *node);    
+void *lylist_remove(LyList_t *list, LyListNode_t *node);
 
 /**
  * @brief 交换节点
- * 
+ *
  * @param a 链表a
  * @param b 链表b
  */
@@ -371,10 +370,43 @@ void lylist_swap(LyListNode_t *a, LyListNode_t *b);
     for (LyListNode_t *node = (list)->head; node; node = node->next)
 
 /* ------------------------------------ 流 ----------------------------------- */
-typedef enum LySetRelation LySetRelation_t;
-
 typedef unsigned char cell_t;     ///< 默认以字节为单位
 typedef struct LyStream LyStream_t;
+
+LyStream_t *lystream_create(size_t size);
+void lystream_create_static(LyStream_t *stream, void *buf, size_t size);
+size_t lystream_in(LyStream_t *stream, cell_t *data, size_t size);
+size_t lystream_out(LyStream_t *stream, cell_t *buf, size_t size);
+size_t lystream_count(LyStream_t *stream);
+size_t lystream_clean(LyStream_t *stream);
+void lystream_delete(LyStream_t *stream);
+
+/* ------------------------------------ 表 ----------------------------------- */
+typedef size_t (*lytable_hash_fn)(const char *key);
+typedef struct {
+    struct lytable_node **slots;
+    size_t capacity;
+    size_t size;
+    lytable_hash_fn hash;   /* 用户提供的哈希函数 */
+} lytable;
+
+/* 创建 */
+lytable *lytable_create(lytable_hash_fn fn);
+
+/* 释放（不释放 value 指向的内存，由调用者负责） */
+void lytable_destroy(lytable *t);
+
+/* 插入/更新，返回 0 成功，-1 内存不足 */
+int lytable_set(lytable *t, const char *key, void *value);
+
+/* 查找，找到返回 value，否则返回 NULL */
+void *lytable_get(lytable *t, const char *key);
+
+/* 删除，返回被删的 value（找不到返回 NULL） */
+void *lytable_remove(lytable *t, const char *key);
+
+/* 键值对数量 */
+size_t lytable_size(lytable *t);
 
 /* ----------------------------------- 集合 ----------------------------------- */
 enum LySetRelation {
