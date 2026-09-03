@@ -71,10 +71,11 @@ size_t lystream_count(LyStream_t *stream)
 size_t lystream_clean(LyStream_t *stream)
 {
     memset(stream->buffer, 0, sizeof(cell_t) * stream->size);
+
+    return stream->size;
 }
 
 void lystream_delete(LyStream_t *stream)
 {
     free(stream);
 }
-

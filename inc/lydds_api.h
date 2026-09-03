@@ -373,12 +373,63 @@ void lylist_swap(LyListNode_t *a, LyListNode_t *b);
 typedef unsigned char cell_t;     ///< 默认以字节为单位
 typedef struct LyStream LyStream_t;
 
+/**
+ * @brief 创建流
+ *
+ * @return LyStream_t
+ */
 LyStream_t *lystream_create(size_t size);
+
+/**
+ * @brief 创建一个静态流
+ *
+ * @param stream 流
+ * @param buf 流缓冲区
+ * @param size 缓冲区大小
+ */
 void lystream_create_static(LyStream_t *stream, void *buf, size_t size);
+
+/**
+ * @brief 数据流入
+ *
+ * @param stream 流
+ * @param data 数据
+ * @param size 数据大小
+ * @return 实际写入的数据大小
+ */
 size_t lystream_in(LyStream_t *stream, cell_t *data, size_t size);
+
+/**
+ * @brief 数据流出
+ *
+ * @param stream 流
+ * @param buf 缓冲区
+ * @param size 缓冲区大小
+ * @return 实际读出的数据大小
+ */
 size_t lystream_out(LyStream_t *stream, cell_t *buf, size_t size);
+
+/**
+ * @brief 获取流中当前的数据个数
+ *
+ * @param stream 流
+ * @return 数据个数
+ */
 size_t lystream_count(LyStream_t *stream);
+
+/**
+ * @brief 清空流
+ *
+ * @param stream 流
+ * @return 清空的单元个数
+ */
 size_t lystream_clean(LyStream_t *stream);
+
+/**
+ * @brief 删除流
+ *
+ * @param stream 流
+ */
 void lystream_delete(LyStream_t *stream);
 
 /* ------------------------------------ 表 ----------------------------------- */
@@ -390,22 +441,57 @@ typedef struct {
     lytable_hash_fn hash;   /* 用户提供的哈希函数 */
 } lytable;
 
-/* 创建 */
+/**
+ * @brief 创建表
+ *
+ * @param fn 哈希函数
+ * @return lytable 表
+ */
 lytable *lytable_create(lytable_hash_fn fn);
 
-/* 释放（不释放 value 指向的内存，由调用者负责） */
+/**
+ * @brief 释放表
+ *
+ * @param t 表
+ *
+ * @note 不释放 value 指向的内存，由调用者负责
+ */
 void lytable_destroy(lytable *t);
 
-/* 插入/更新，返回 0 成功，-1 内存不足 */
+/**
+ * @brief 插入或更新键值对
+ *
+ * @param t 表
+ * @param key 键
+ * @param value 值
+ * @return 0 成功，-1 内存不足
+ */
 int lytable_set(lytable *t, const char *key, void *value);
 
-/* 查找，找到返回 value，否则返回 NULL */
+/**
+ * @brief 查找键值对
+ *
+ * @param t 表
+ * @param key 键
+ * @return 找到返回 value，否则返回 NULL
+ */
 void *lytable_get(lytable *t, const char *key);
 
-/* 删除，返回被删的 value（找不到返回 NULL） */
+/**
+ * @brief 删除键值对
+ *
+ * @param t 表
+ * @param key 键
+ * @return 被删除的 value（找不到返回 NULL）
+ */
 void *lytable_remove(lytable *t, const char *key);
 
-/* 键值对数量 */
+/**
+ * @brief 获取键值对数量
+ *
+ * @param t 表
+ * @return 键值对数量
+ */
 size_t lytable_size(lytable *t);
 
 /* ----------------------------------- 集合 ----------------------------------- */
