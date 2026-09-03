@@ -25,20 +25,20 @@
  * SOFTWARE.
  *
  * @note
- * LyBucket的核心是list + table结构，并引入RESET接口请求方法
+ * LyBucket的核心是list + table结构，并引入REST接口请求方法
  */
 
 
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 // 节点
 struct LyBucketNode {
     const char *name;	///< 索引名
     void *item;			///< 项指针
 
-    LyBucketMeta_t meta;        /// @note 所有元数据均为拷贝存储
+    LyBucketMeta_t meta;		///< 元数据（均为拷贝存储）
     LyBucketNode_t *prev;		///< 前驱节点
     LyBucketNode_t *next;		///< 后驱节点
 };
@@ -75,8 +75,8 @@ LyBucket_t *lybucket_create(void)
 /// @note 遇到同名则替换，无同名则增加
 LyBucketNode_t *lybucket_put(LyBucket_t *bucket, const char *const name, void *item, LyBucketMeta_t meta)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(name);
 
     LyBucketNode_t *cur = lybucket_get(bucket, name);
 
@@ -106,7 +106,7 @@ LyBucketNode_t *lybucket_put(LyBucket_t *bucket, const char *const name, void *i
 /// @brief 得到最近的一个节点
 LyBucketNode_t *lybucket_head(LyBucket_t *bucket, bool at_tail)
 {
-    LYDDS_ASSERT(bucket);
+    LYDSS_ASSERT(bucket);
 
     if(at_tail == true) {
         return bucket->tail_item;
@@ -119,8 +119,8 @@ LyBucketNode_t *lybucket_head(LyBucket_t *bucket, bool at_tail)
 /// @brief 获取桶中的节点
 LyBucketNode_t *lybucket_get(LyBucket_t *bucket, const char *const name)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(name);
 
     LyBucketNode_t *cur = bucket->head_item;
     for(uint32_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
@@ -135,9 +135,9 @@ LyBucketNode_t *lybucket_get(LyBucket_t *bucket, const char *const name)
 /// @brief 修改桶中的索引名
 bool lybucket_patch_name(LyBucket_t *bucket, const char *const old_name, const char *const new_name)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(old_name);
-    LYDDS_ASSERT(new_name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(old_name);
+    LYDSS_ASSERT(new_name);
 
     LyBucketNode_t *cur = lybucket_get(bucket, old_name);
     if(cur != NULL) {
@@ -151,9 +151,9 @@ bool lybucket_patch_name(LyBucket_t *bucket, const char *const old_name, const c
 /// @brief 修改桶中的项指针
 bool lybucket_patch_item(LyBucket_t *bucket, const char *const name, void *item)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(name);
-    LYDDS_ASSERT(item);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(name);
+    LYDSS_ASSERT(item);
 
     LyBucketNode_t *cur = lybucket_get(bucket, name);
     if(cur != NULL) {
@@ -167,8 +167,8 @@ bool lybucket_patch_item(LyBucket_t *bucket, const char *const name, void *item)
 /// @brief 修改桶中的元数据
 bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMeta_t meta)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(name);
 
     LyBucketNode_t *cur = lybucket_get(bucket, name);
     if(cur != NULL) {
@@ -191,8 +191,8 @@ bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMet
 /// @brief 从桶中移除项但不释放（返回被移除的项）
 LyBucketNode_t *lybucket_remove(LyBucket_t *bucket, const char *const name)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(name);
 
     LyBucketNode_t *cur = lybucket_get(bucket, name);
     if(cur != NULL) {
@@ -208,8 +208,8 @@ LyBucketNode_t *lybucket_remove(LyBucket_t *bucket, const char *const name)
 /// @brief 从桶中移除一个节点
 void lybucket_remove_node(LyBucket_t *bucket, LyBucketNode_t *node)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(node);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(node);
 
     // 更新前驱节点的next指针
     if(node->prev != NULL) {
@@ -234,8 +234,8 @@ void lybucket_remove_node(LyBucket_t *bucket, LyBucketNode_t *node)
 /// @brief 删除桶中的节点
 bool lybucket_erase(LyBucket_t *bucket, const char *const name)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(name);
 
     LyBucketNode_t *cur = lybucket_remove(bucket, name);
     if(cur != NULL) {
@@ -252,11 +252,14 @@ bool lybucket_erase(LyBucket_t *bucket, const char *const name)
 /// @brief 销毁指定的桶
 void lybucket_delete(LyBucket_t *bucket)
 {
-    LYDDS_ASSERT(bucket);
+    LYDSS_ASSERT(bucket);
 
     LyBucketNode_t *cur = bucket->head_item;
     while(cur != NULL) {
         LyBucketNode_t *next = cur->next;
+        if(cur->meta.data != NULL) {
+            free(cur->meta.data);
+        }
         free(cur);
         cur = next;
     }
@@ -268,7 +271,7 @@ void lybucket_delete(LyBucket_t *bucket)
 /// @brief 将一个项添加到桶
 LyBucketNode_t *lybucket_post(LyBucket_t *bucket, const char *const name, void *item, LyBucketMeta_t meta, bool at_head)
 {
-    LYDDS_ASSERT(bucket);
+    LYDSS_ASSERT(bucket);
 
     LyBucketNode_t *node = malloc(sizeof(LyBucketNode_t));
     if(node == NULL) {
@@ -317,8 +320,8 @@ LyBucketNode_t *lybucket_post(LyBucket_t *bucket, const char *const name, void *
 /// @brief 将一个项插入到桶指定位置
 LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void *item, LyBucketMeta_t meta, const char *const at_name, bool at_before)
 {
-    LYDDS_ASSERT(bucket);
-    LYDDS_ASSERT(at_name);
+    LYDSS_ASSERT(bucket);
+    LYDSS_ASSERT(at_name);
 
     LyBucketNode_t *cur = lybucket_get(bucket, at_name);
     if(cur != NULL) {
@@ -379,8 +382,8 @@ LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void
 /// @brief 分配内存并复制内容（返回新分配的内存指针）
 static void *_memdup(const void *src, size_t size)
 {
-    LYDDS_ASSERT(src);
-    LYDDS_ASSERT(size);
+    LYDSS_ASSERT(src);
+    LYDSS_ASSERT(size);
 
     void *dest = malloc(size);
     if(dest == NULL) {

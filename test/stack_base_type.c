@@ -1,5 +1,5 @@
 /**
- * @file stack_basic.c
+ * @file stack_base_type.c
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2025-08-06
@@ -11,11 +11,11 @@
  */
 /*
 #include <stdio.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 #define STACK_SIZE 10
 
-int stack_basic()
+int stack_base_type()
 {
     printf("Start stack api test...\n");
 

@@ -33,31 +33,31 @@ RedPandaIDE.exe: $(OBJ)
 ../../test/queue_basic.o: ../../test/queue_basic.c
 	$(CC) -c "../../test/queue_basic.c" -o "../../test/queue_basic.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
 
-../../src/lyset.o: ../../src/lyset.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../src/lyset.o: ../../src/lyset.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../src/lyset.c" -o "../../src/lyset.o" $(CFLAGS) 
 
-../../test/simple.o: ../../test/simple.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../test/simple.o: ../../test/simple.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../test/simple.c" -o "../../test/simple.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
 
 ../../test/bucket_basic.o: ../../test/bucket_basic.c
 	$(CC) -c "../../test/bucket_basic.c" -o "../../test/bucket_basic.o" $(CFLAGS) 
 
-../../src/lypool.o: ../../src/lypool.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../src/lypool.o: ../../src/lypool.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../src/lypool.c" -o "../../src/lypool.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
 
-../../test/set_basic.o: ../../test/set_basic.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../test/set_basic.o: ../../test/set_basic.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../test/set_basic.c" -o "../../test/set_basic.o" $(CFLAGS) 
 
-../../src/lyqueue.o: ../../src/lyqueue.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../src/lyqueue.o: ../../src/lyqueue.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../src/lyqueue.c" -o "../../src/lyqueue.o" $(CFLAGS) 
 
 ../run_simple_test.o: ../run_simple_test.c
 	$(CC) -c "../run_simple_test.c" -o "../run_simple_test.o" $(CFLAGS)  -finput-charset=UTF-8 -fexec-charset=gbk
 
-../../src/lybucket.o: ../../src/lybucket.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../src/lybucket.o: ../../src/lybucket.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../src/lybucket.c" -o "../../src/lybucket.o" $(CFLAGS) 
 
-../../test/pool_basic.o: ../../test/pool_basic.c ../../inc/lydds_cfg.h ../../inc/lydds_api.h
+../../test/pool_basic.o: ../../test/pool_basic.c ../../inc/lydss_cfg.h ../../inc/lydss_api.h
 	$(CC) -c "../../test/pool_basic.c" -o "../../test/pool_basic.o" $(CFLAGS) 
 
 RedPandaIDE_private.res: RedPandaIDE_private.rc 

@@ -1,5 +1,5 @@
 /**
- * @file lydds_cfg.h
+ * @file lydss_cfg.h
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2026-08-07
@@ -10,16 +10,16 @@
  * Matters related to this document.
  */
 
-#ifndef __LYDDS_CFG__
-#define __LYDDS_CFG__
+#ifndef LYDSS_CFG_H
+#define LYDSS_CFG_H
 
 #include <stdio.h>
 
-#define LYDDS_ASSERT_ENABLED 1
+#define LYDSS_ASSERT_ENABLED 1
 
 
 
 /* ---------------------------------- POOL ---------------------------------- */
 
 
-#endif        /* __LYDDS_CFG__ */
+#endif        /* LYDSS_CFG_H */

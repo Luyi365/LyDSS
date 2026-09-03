@@ -11,7 +11,7 @@
  */
 /*
 #include <stdio.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 #define QUEUE_SIZE 10
 

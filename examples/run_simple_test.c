@@ -19,8 +19,8 @@ int main()
 
     /** ./test/simple.c */
     extern int simple();
-    status = simple();
+    status |= simple();
     printf("\n");
 
-    return 0;
+    return status;
 }

@@ -53,10 +53,11 @@
 #include <stdint.h> 
 #include <stddef.h>
 #include <stdbool.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 struct LyPool {
     size_t size;            ///< 池大小，也就是存放的对象数量
+    bool is_static;         ///< 对象数组是否由调用者提供
     struct LyPoolItem {
         const char *name;
         void *object;
@@ -80,6 +81,7 @@ LyPool_t *lypool_create(size_t size)
     }
 
     pool->size = size;
+    pool->is_static = false;
 
     return pool;
 }
@@ -87,17 +89,24 @@ LyPool_t *lypool_create(size_t size)
 /// @brief 创建一个静态池
 void lypool_create_static(LyPool_t *pool, LyPoolItem_t *items, size_t size)
 {
-    LYDDS_ASSERT(pool);
+    LYDSS_ASSERT(pool);
+    LYDSS_ASSERT(items);
+
+    for(size_t i = 0; i < size; i++) {
+        items[i].name = NULL;
+        items[i].object = NULL;
+    }
 
     pool->items = items;
     pool->size = size;
+    pool->is_static = true;
 }
 
 /// @brief 将一个对象引入池
 void lypool_post(LyPool_t *pool, const char *const name, void *obj)
 {
-    LYDDS_ASSERT(pool);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(pool);
+    LYDSS_ASSERT(name);
 
     for(size_t i = 0; i < pool->size; i++) {
         if(pool->items[i].name == NULL) {
@@ -112,11 +121,12 @@ void lypool_post(LyPool_t *pool, const char *const name, void *obj)
 /// @brief 获取池中的指定对象
 void *lypool_get(LyPool_t *pool, const char *const name)
 {
-    LYDDS_ASSERT(pool);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(pool);
+    LYDSS_ASSERT(name);
 
     for(size_t i = 0; i < pool->size; i++) {
-        if(!strcmp(pool->items[i].name, name)) {
+        if(pool->items[i].name != NULL
+            && strcmp(pool->items[i].name, name) == 0) {
             return pool->items[i].object;
         }
     }
@@ -128,11 +138,12 @@ void *lypool_get(LyPool_t *pool, const char *const name)
 /// @brief 清除池中的指定对象
 void lypool_clear(LyPool_t *pool, const char *const name)
 {
-    LYDDS_ASSERT(pool);
-    LYDDS_ASSERT(name);
+    LYDSS_ASSERT(pool);
+    LYDSS_ASSERT(name);
 
     for(size_t i = 0; i < pool->size; i++) {
-        if(pool->items[i].name == name) {
+        if(pool->items[i].name != NULL
+            && strcmp(pool->items[i].name, name) == 0) {
             pool->items[i].name = NULL;
             pool->items[i].object = NULL;
         }
@@ -141,12 +152,22 @@ void lypool_clear(LyPool_t *pool, const char *const name)
 }
 
 /// @brief 销毁指定的池
+/// @note 静态池只解除对象数组绑定，不释放调用者提供的内存与句柄
 void lypool_delete(LyPool_t *pool)
 {
-    LYDDS_ASSERT(pool);
+    LYDSS_ASSERT(pool);
 
     for(size_t i = 0; i < pool->size; i++) {
-        lypool_clear(pool, pool->items[i].name);
+        pool->items[i].name = NULL;
+        pool->items[i].object = NULL;
     }
+
+    if(pool->is_static == true) {
+        pool->items = NULL;
+        pool->size = 0;
+        return;
+    }
+
+    free(pool->items);
     free(pool);
 }

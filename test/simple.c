@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 int simple()
 {

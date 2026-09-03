@@ -12,12 +12,16 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 /// @brief 创建链表
-LyList_t *lylist_creatr(void)
+LyList_t *lylist_create(void)
 {
     LyList_t *new_list = (LyList_t *)malloc(sizeof(LyList_t));
+    if(new_list == NULL) {
+        return NULL;
+    }
+
     new_list->head = NULL;
     new_list->tail = NULL;
 
@@ -25,9 +29,10 @@ LyList_t *lylist_creatr(void)
 }
 
 /// @brief 销毁链表
+/// @note 只释放节点，不释放 data 指向的业务对象，也不释放 list 句柄本身
 void lylist_destroy(LyList_t *list)
 {
-    LYDDS_ASSERT(list);
+    LYDSS_ASSERT(list);
 
     LyListNode_t *cur_node = list->head;
     while(cur_node)
@@ -42,9 +47,13 @@ void lylist_destroy(LyList_t *list)
 /// @brief 链表头部插入节点
 LyListNode_t *lylist_push_front(LyList_t *list, void *data)
 {
-    LYDDS_ASSERT(list);
+    LYDSS_ASSERT(list);
 
     LyListNode_t *new_node = calloc(1, sizeof(LyListNode_t));
+    if(new_node == NULL) {
+        return NULL;
+    }
+
     new_node->data = data;
     if(list->head == NULL) {
         list->head = list->tail = new_node;
@@ -61,9 +70,13 @@ LyListNode_t *lylist_push_front(LyList_t *list, void *data)
 /// @brief 链表尾部插入节点
 LyListNode_t *lylist_push_rear(LyList_t *list, void *data)
 {
-    LYDDS_ASSERT(list);
+    LYDSS_ASSERT(list);
 
     LyListNode_t *new_node = calloc(1, sizeof(LyListNode_t));
+    if(new_node == NULL) {
+        return NULL;
+    }
+
     new_node->data = data;
     if(list->tail == NULL) {
         list->head = list->tail = new_node;
@@ -80,10 +93,14 @@ LyListNode_t *lylist_push_rear(LyList_t *list, void *data)
 /// @brief 在节点前插入
 LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *data)
 {
-    LYDDS_ASSERT(list);
-    LYDDS_ASSERT(node);
+    LYDSS_ASSERT(list);
+    LYDSS_ASSERT(node);
 
     LyListNode_t *new_node = calloc(1, sizeof(LyListNode_t));
+    if(new_node == NULL) {
+        return NULL;
+    }
+
     new_node->data = data;
     new_node->next = node;
     new_node->prev = node->prev;
@@ -99,10 +116,14 @@ LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *dat
 /// @brief 在节点后插入
 LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data)
 {
-    LYDDS_ASSERT(list);
-    LYDDS_ASSERT(node);
+    LYDSS_ASSERT(list);
+    LYDSS_ASSERT(node);
 
     LyListNode_t *new_node = calloc(1, sizeof(LyListNode_t));
+    if(new_node == NULL) {
+        return NULL;
+    }
+
     new_node->data = data;
     new_node->prev = node;
     new_node->next = node->next;
@@ -118,7 +139,11 @@ LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data
 /// @brief 弹出链表头部节点
 void *lylist_pop_front(LyList_t *list)
 {
-    LYDDS_ASSERT(list);
+    LYDSS_ASSERT(list);
+
+    if(list->head == NULL) {
+        return NULL;
+    }
 
     return lylist_remove(list, list->head);
 }
@@ -126,7 +151,11 @@ void *lylist_pop_front(LyList_t *list)
 /// @brief 弹出链表尾部节点
 void *lylist_pop_rear(LyList_t *list)
 {
-    LYDDS_ASSERT(list);
+    LYDSS_ASSERT(list);
+
+    if(list->tail == NULL) {
+        return NULL;
+    }
 
     return lylist_remove(list, list->tail);
 }
@@ -134,8 +163,8 @@ void *lylist_pop_rear(LyList_t *list)
 /// @brief 移除节点
 void *lylist_remove(LyList_t *list, LyListNode_t *node)
 {
-    LYDDS_ASSERT(list);
-    LYDDS_ASSERT(node);
+    LYDSS_ASSERT(list);
+    LYDSS_ASSERT(node);
 
     void *node_data = node->data;
     if(node->prev)
@@ -154,8 +183,8 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node)
 /// @brief 交换节点
 void lylist_swap(LyListNode_t *a, LyListNode_t *b)
 {
-    LYDDS_ASSERT(a);
-    LYDDS_ASSERT(b);
+    LYDSS_ASSERT(a);
+    LYDSS_ASSERT(b);
 
     LyListNode_t *tmp = a->prev;
     a->prev = b->prev;

@@ -12,11 +12,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 int list_basic()
 {
-    LyList_t *list = lylist_creatr();
+    LyList_t *list = lylist_create();
 
     int a = 1, b = 2, c = 3;
     lylist_push_rear(list, &a);

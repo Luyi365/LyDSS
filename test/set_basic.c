@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 /* ---------- 哈希函数（FNV-1a） ---------- */
 static unsigned fnv1a(const void *data, size_t len)

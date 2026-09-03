@@ -1,5 +1,5 @@
 /**
- * @file run_all_examples.c
+ * @file run_all_basic_test.c
  * @author Luyi365 (luyi.hub@foxmail.com)
  * @brief
  * @date 2025-07-16
@@ -19,7 +19,22 @@ int main()
 
     /** ./test/pool_basic.c */
     extern int pool_basic();
-    status = pool_basic();
+    status |= pool_basic();
+    printf("\n");
+
+    /** ./test/array_basic.c */
+    extern int array_basic();
+    status |= array_basic();
+    printf("\n");
+
+    /** ./test/vector_basic.c */
+    extern int vector_basic();
+    status |= vector_basic();
+    printf("\n");
+
+    /** ./test/stream_basic.c */
+    extern int stream_basic();
+    status |= stream_basic();
     printf("\n");
 
     /** ./test/queue_basic.c */
@@ -29,8 +44,8 @@ int main()
 
     /** ./test/stack_basic.c */
     // extern int stack_basic();
-    // status = stack_basic();
+    // status |= stack_basic();
     // printf("\n");
 
-    return 0;
+    return status;
 }

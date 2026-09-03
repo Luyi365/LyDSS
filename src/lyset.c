@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <malloc.h>
-#include "../inc/lydds_api.h"
+#include "../inc/lydss_api.h"
 
 struct LySet {
     size_t size;          // 集合大小
@@ -34,11 +34,15 @@ struct LySet {
 /// @brief 初始化一个集合
 LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equals)
 {
-    LYDDS_ASSERT(elem_size);
-    LYDDS_ASSERT(hash);
-    LYDDS_ASSERT(equals);
+    LYDSS_ASSERT(elem_size);
+    LYDSS_ASSERT(hash);
+    LYDSS_ASSERT(equals);
 
     LySet_t *set = calloc(1, sizeof(LySet_t) + size * sizeof(struct ElemNode *));
+    if(set == NULL) {
+        return NULL;
+    }
+
     set->size = size;
     set->elem_size = elem_size;
     set->count = 0;
@@ -51,7 +55,7 @@ LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equal
 /// @brief 向集合中添加元素
 bool lyset_add(LySet_t *set, const void *elem)
 {
-    LYDDS_ASSERT(set);
+    LYDSS_ASSERT(set);
     if(elem == NULL)
         return false;
 
@@ -62,7 +66,16 @@ bool lyset_add(LySet_t *set, const void *elem)
     }
 
     struct ElemNode *node = malloc(sizeof(struct ElemNode));
+    if(node == NULL) {
+        return false;
+    }
+
     node->element = malloc(set->elem_size);
+    if(node->element == NULL) {
+        free(node);
+        return false;
+    }
+
     memcpy(node->element, elem, set->elem_size);
     node->next = set->elem_node[idx];
     set->elem_node[idx] = node;
@@ -73,7 +86,7 @@ bool lyset_add(LySet_t *set, const void *elem)
 /// @brief 若集合中存在该元素则移除 
 bool lyset_remove(LySet_t *set, const void *elem)
 {
-    LYDDS_ASSERT(set);
+    LYDSS_ASSERT(set);
     if(elem == NULL)
         return false;
 
@@ -96,8 +109,8 @@ bool lyset_remove(LySet_t *set, const void *elem)
 /// @brief 从集合移除并返回任意一个元素
 bool lyset_pop(LySet_t *set, void *out)
 {
-    LYDDS_ASSERT(set);
-    LYDDS_ASSERT(out);
+    LYDSS_ASSERT(set);
+    LYDSS_ASSERT(out);
 
     for(size_t i = 0; i < set->size; i++) {
         if(set->elem_node[i]) {
@@ -116,7 +129,7 @@ bool lyset_pop(LySet_t *set, void *out)
 /// @brief 移除指定容器里所有的元素
 void lyset_erase(LySet_t *set)
 {
-    LYDDS_ASSERT(set);
+    LYDSS_ASSERT(set);
 
     for(size_t i = 0; i < set->size; i++) {
         struct ElemNode *node = set->elem_node[i];
@@ -134,7 +147,7 @@ void lyset_erase(LySet_t *set)
 /// @brief 销毁指定的集合
 void lyset_destroy(LySet_t *set)
 {
-    LYDDS_ASSERT(set);
+    LYDSS_ASSERT(set);
 
     for(size_t i = 0; i < set->size; i++) {
         struct ElemNode *node = set->elem_node[i];
@@ -152,15 +165,15 @@ void lyset_destroy(LySet_t *set)
 /// @brief 得到集合的元素数量
 size_t lyset_count(const LySet_t *set)
 {
-    LYDDS_ASSERT(set);
+    LYDSS_ASSERT(set);
 
-    return set->size;
+    return set->count;
 }
 
 /// @brief 判断集合中是否包含指定的元素
 bool lyset_contains(const LySet_t *set, const void *elem)
 {
-    LYDDS_ASSERT(set);
+    LYDSS_ASSERT(set);
     if(elem == NULL)
         return false;
 
@@ -174,21 +187,21 @@ bool lyset_contains(const LySet_t *set, const void *elem)
 /// @brief 判断两个集合的关系
 LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other)
 {
-    LYDDS_ASSERT(self);
-    LYDDS_ASSERT(other);
+    LYDSS_ASSERT(self);
+    LYDSS_ASSERT(other);
 
-    int self_in_other = true, other_in_self = true, has_inter = false;
+    bool self_in_other = true, other_in_self = true, has_inter = false;
     for(size_t i = 0; i < self->size; i++)
         for(struct ElemNode *node = self->elem_node[i]; node; node = node->next) {
             if(lyset_contains(other, node->element))
-                has_inter = 1;
+                has_inter = true;
             else
-                self_in_other = 0;
+                self_in_other = false;
         }
     for(size_t i = 0; i < other->size; i++)
         for(struct ElemNode *node = other->elem_node[i]; node; node = node->next)
             if(!lyset_contains(self, node->element)) {
-                other_in_self = 0;
+                other_in_self = false;
                 break;
             }
     if(self_in_other && other_in_self) return LySetRelation_SAME;

@@ -77,7 +77,7 @@ RealEncoding = UTF-8
 
 
 [Unit2]
-FileName = ../../inc/lydds_cfg.h
+FileName = ../../inc/lydss_cfg.h
 CompileCpp = 0
 Folder = 头文件
 Compile = 0
@@ -103,7 +103,7 @@ RealEncoding = UTF-8
 
 
 [Unit4]
-FileName = ../../inc/lydds_api.h
+FileName = ../../inc/lydss_api.h
 CompileCpp = 0
 Folder = 头文件
 Compile = 0

@@ -1,9 +1,9 @@
-# LyDDS Agent Guide
+# LyDSS Agent Guide
 
 ## Project Shape
 
-- LyDDS is a C project that builds one static library per container in `src/`: bucket, list, pool, queue, set, stack, stream, and table.
-- Public declarations are centralized in [`inc/lydds_api.h`](inc/lydds_api.h); configuration and assertion behavior are in [`inc/lydds_cfg.h`](inc/lydds_cfg.h).
+- LyDSS is a C project that builds one static library per container in `src/`: array, bucket, list, pool, queue, set, stack, stream, and table.
+- Public declarations are centralized in [`inc/lydss_api.h`](inc/lydss_api.h); configuration and assertion behavior are in [`inc/lydss_cfg.h`](inc/lydss_cfg.h).
 - Keep container implementations in their matching `src/ly<name>.c` file and tests in `test/<name>_basic.c`.
 - Use existing naming conventions: `ly<container>_<operation>` functions and `Ly<Container>_t` types, except for the legacy lower-case `lytable` API.
 
@@ -30,7 +30,7 @@ CTest currently runs two aggregate executables: [`examples/run_simple_test.c`](e
 - Queue, stack, and set copy fixed-size elements according to their configured element size. Sets also require caller-provided hash and equality callbacks.
 - List, pool, table, and bucket APIs commonly retain external `void *` pointers; do not assume ownership of caller-owned business objects. The table copies keys but does not free values.
 - Do not infer a public array or vector abstraction solely from an implementation that uses `items`, `buffer`, or index arithmetic. Queue, stack, and pool use array-like storage for their own container semantics; compare their public operations before proposing a new shared container.
-- Assertions are enabled by default. `LYDDS_ASSERT` may enter a debugger breakpoint/infinite loop on failure, so do not assume invalid input produces a normal error return.
+- Assertions are enabled by default. `LYDSS_ASSERT` may enter a debugger breakpoint/infinite loop on failure, so do not assume invalid input produces a normal error return.
 
 ## Change Guidance
 
