@@ -35,9 +35,9 @@ struct LyVector {
     unsigned long size;         ///< 当前成员数量
 };
 
-static bool _reserve_for(LyVector_t *vector, unsigned long need);
-static bool _reseat(LyVector_t *vector, unsigned long new_len);
-static void *_item_address(LyVector_t *vector, unsigned long index);
+static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need);
+static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len);
+static void *vector_locate_item(LyVector_t *vector, unsigned long index);
 
 /// @brief 创建一个变长数组
 LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
@@ -77,7 +77,7 @@ bool lyvector_reserve(LyVector_t *vector, unsigned long len)
         return true;
     }
 
-    return _reseat(vector, len);
+    return vector_resize_buffer(vector, len);
 }
 
 /// @brief 在尾部追加成员
@@ -87,11 +87,11 @@ bool lyvector_push_rear(LyVector_t *vector, const void *item)
     LYDSS_ASSERT(vector);
     LYDSS_ASSERT(item);
 
-    if(_reserve_for(vector, vector->size + 1) == false) {
+    if(vector_reserve_capacity(vector, vector->size + 1) == false) {
         return false;
     }
 
-    memcpy(_item_address(vector, vector->size), item, vector->item_size);
+    memcpy(vector_locate_item(vector, vector->size), item, vector->item_size);
     vector->size++;
 
     return true;
@@ -108,7 +108,7 @@ bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item)
         return false;
     }
 
-    memcpy(_item_address(vector, index), item, vector->item_size);
+    memcpy(vector_locate_item(vector, index), item, vector->item_size);
 
     return true;
 }
@@ -123,7 +123,7 @@ void *lyvector_get(LyVector_t *vector, unsigned long index)
         return NULL;
     }
 
-    return _item_address(vector, index);
+    return vector_locate_item(vector, index);
 }
 
 /// @brief 读取指定下标的成员到缓冲区
@@ -136,7 +136,7 @@ bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf)
         return false;
     }
 
-    memcpy(buf, _item_address(vector, index), vector->item_size);
+    memcpy(buf, vector_locate_item(vector, index), vector->item_size);
 
     return true;
 }
@@ -153,7 +153,7 @@ bool lyvector_pop_rear(LyVector_t *vector, void *buf)
 
     vector->size--;
     if(buf != NULL) {
-        memcpy(buf, _item_address(vector, vector->size), vector->item_size);
+        memcpy(buf, vector_locate_item(vector, vector->size), vector->item_size);
     }
 
     return true;
@@ -181,7 +181,7 @@ bool lyvector_shrink(LyVector_t *vector)
         return true;
     }
 
-    return _reseat(vector, new_len);
+    return vector_resize_buffer(vector, new_len);
 }
 
 /// @brief 删除变长数组
@@ -219,7 +219,7 @@ bool lyvector_is_empty(LyVector_t *vector)
 
 /* --------------------------------- static --------------------------------- */
 /// @brief 确保容量至少能容纳 need 个成员，不足则按倍数增长
-static bool _reserve_for(LyVector_t *vector, unsigned long need)
+static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need)
 {
     if(need <= vector->capacity) {
         return true;
@@ -234,12 +234,12 @@ static bool _reserve_for(LyVector_t *vector, unsigned long need)
         new_len *= LYVECTOR_GROWTH_FACTOR;
     }
 
-    return _reseat(vector, new_len);
+    return vector_resize_buffer(vector, new_len);
 }
 
 /// @brief 重新分配成员区
 /// @note 分配失败时原成员区与容量保持不变
-static bool _reseat(LyVector_t *vector, unsigned long new_len)
+static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len)
 {
     LYDSS_ASSERT(new_len >= vector->size);
 
@@ -259,7 +259,7 @@ static bool _reseat(LyVector_t *vector, unsigned long new_len)
 }
 
 /// @brief 计算指定下标成员的地址
-static void *_item_address(LyVector_t *vector, unsigned long index)
+static void *vector_locate_item(LyVector_t *vector, unsigned long index)
 {
     return (unsigned char *)vector->buffer + index * vector->item_size;
 }

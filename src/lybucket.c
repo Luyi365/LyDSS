@@ -33,25 +33,21 @@
 #include <string.h>
 #include "../inc/lydss_api.h"
 
-// 节点
 struct LyBucketNode {
-    const char *name;	///< 索引名
-    void *item;			///< 项指针
-
-    LyBucketMeta_t meta;		///< 元数据（均为拷贝存储）
-    LyBucketNode_t *prev;		///< 前驱节点
-    LyBucketNode_t *next;		///< 后驱节点
+    const char *name;               ///< 索引名
+    void *item;                     ///< 项指针
+    LyBucketMeta_t meta;            ///< 元数据（均为拷贝存储）
+    LyBucketNode_t *prev;           ///< 前驱节点
+    LyBucketNode_t *next;           ///< 后驱节点
 };
 
-// 桶
 struct LyBucket {
-    uint8_t count;   	///< 桶中项的实际数量
-
-    LyBucketNode_t *head_item;	///< 指向桶首成员
-    LyBucketNode_t *tail_item;	///< 指向桶尾成员
+    uint8_t count;                  ///< 桶中项的实际数量
+    LyBucketNode_t *head_item;      ///< 指向桶首成员
+    LyBucketNode_t *tail_item;      ///< 指向桶尾成员
 };
 
-static void *_memdup(const void *src, size_t size);
+static void *bucket_dup_memory(const void *src, size_t size);
 
 /* ---------------------------------- 检查索引名 --------------------------------- */
 /// @brief 创建一个桶
@@ -91,9 +87,9 @@ LyBucketNode_t *lybucket_put(LyBucket_t *bucket, const char *const name, void *i
         }
         switch(meta.type)
         {
-        case LyBucketMetaType_NULL: cur->meta.data = NULL; break;
-        case LyBucketMetaType_COPY: cur->meta.data = _memdup(item, meta.size); break;
-        case LyBucketMetaType_ATTACH: cur->meta.data = _memdup(meta.data, meta.size); break;
+            case LyBucketMetaType_NULL: cur->meta.data = NULL; break;
+            case LyBucketMetaType_COPY: cur->meta.data = bucket_dup_memory(item, meta.size); break;
+            case LyBucketMetaType_ATTACH: cur->meta.data = bucket_dup_memory(meta.data, meta.size); break;
         }
         cur->item = item;
         cur->meta.type = meta.type;
@@ -177,9 +173,9 @@ bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMet
         }
         switch(meta.type)
         {
-        case LyBucketMetaType_NULL: meta.data = NULL; break;
-        case LyBucketMetaType_COPY: meta.data = _memdup(cur->item, meta.size); break;
-        case LyBucketMetaType_ATTACH: meta.data = _memdup(meta.data, meta.size); break;
+            case LyBucketMetaType_NULL: meta.data = NULL; break;
+            case LyBucketMetaType_COPY: meta.data = bucket_dup_memory(cur->item, meta.size); break;
+            case LyBucketMetaType_ATTACH: meta.data = bucket_dup_memory(meta.data, meta.size); break;
         }
         cur->meta = meta;
         return true;
@@ -281,9 +277,9 @@ LyBucketNode_t *lybucket_post(LyBucket_t *bucket, const char *const name, void *
     void *tmp = NULL;
     switch(meta.type)
     {
-    case LyBucketMetaType_NULL: tmp = NULL; break;
-    case LyBucketMetaType_COPY: tmp = _memdup(item, meta.size); break;
-    case LyBucketMetaType_ATTACH: tmp = _memdup(meta.data, meta.size); break;
+        case LyBucketMetaType_NULL: tmp = NULL; break;
+        case LyBucketMetaType_COPY: tmp = bucket_dup_memory(item, meta.size); break;
+        case LyBucketMetaType_ATTACH: tmp = bucket_dup_memory(meta.data, meta.size); break;
     }
 
     *node = (LyBucketNode_t){
@@ -333,9 +329,9 @@ LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void
         void *tmp = NULL;
         switch(meta.type)
         {
-        case LyBucketMetaType_NULL: tmp = NULL; break;
-        case LyBucketMetaType_COPY: tmp = _memdup(item, meta.size); break;
-        case LyBucketMetaType_ATTACH: tmp = _memdup(meta.data, meta.size); break;
+            case LyBucketMetaType_NULL: tmp = NULL; break;
+            case LyBucketMetaType_COPY: tmp = bucket_dup_memory(item, meta.size); break;
+            case LyBucketMetaType_ATTACH: tmp = bucket_dup_memory(meta.data, meta.size); break;
         }
 
         *node = (LyBucketNode_t){
@@ -380,7 +376,7 @@ LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void
 
 /* --------------------------------- static --------------------------------- */
 /// @brief 分配内存并复制内容（返回新分配的内存指针）
-static void *_memdup(const void *src, size_t size)
+static void *bucket_dup_memory(const void *src, size_t size)
 {
     LYDSS_ASSERT(src);
     LYDSS_ASSERT(size);

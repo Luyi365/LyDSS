@@ -15,7 +15,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <malloc.h>
 #include "../inc/lydss_api.h"
 
 

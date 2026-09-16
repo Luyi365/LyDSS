@@ -12,23 +12,22 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h> 
+#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <malloc.h>
 #include "../inc/lydss_api.h"
 
 struct LySet {
-    size_t size;          // 集合大小
-    size_t elem_size;     // 元素大小
-    size_t count;         // 当前元素个数
-    Hash_t *hash;         // 哈希函数
-    Equals_t *equals;     // 比较函数
+    size_t size;                    ///< 槽位数量
+    size_t elem_size;               ///< 单个元素的大小（单位：字节）
+    size_t count;                   ///< 当前元素个数
+    Hash_t *hash;                   ///< 哈希函数
+    Equals_t *equals;               ///< 比较函数
 
     struct ElemNode {
-        void *element;    // 元素指针
-        struct ElemNode *next;
-    } *elem_node[];       // 元素节点数组
+        void *element;              ///< 元素副本
+        struct ElemNode *next;      ///< 同槽位的后继节点
+    } *elem_node[];                 ///< 槽位数组
 };
 
 /// @brief 初始化一个集合
@@ -56,13 +55,16 @@ LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equal
 bool lyset_add(LySet_t *set, const void *elem)
 {
     LYDSS_ASSERT(set);
-    if(elem == NULL)
+
+    if(elem == NULL) {
         return false;
+    }
 
     size_t idx = set->hash(elem, set->elem_size) % set->size;
-    for(struct ElemNode *node = set->elem_node[idx]; node; node = node->next) {
-        if(set->equals(node->element, elem))
-            return false; /* 已存在 */
+    for(struct ElemNode *node = set->elem_node[idx]; node != NULL; node = node->next) {
+        if(set->equals(node->element, elem)) {
+            return false;
+        }
     }
 
     struct ElemNode *node = malloc(sizeof(struct ElemNode));
@@ -80,29 +82,34 @@ bool lyset_add(LySet_t *set, const void *elem)
     node->next = set->elem_node[idx];
     set->elem_node[idx] = node;
     set->count++;
+
     return true;
 }
 
-/// @brief 若集合中存在该元素则移除 
+/// @brief 若集合中存在该元素则移除
 bool lyset_remove(LySet_t *set, const void *elem)
 {
     LYDSS_ASSERT(set);
-    if(elem == NULL)
-        return false;
 
-    unsigned idx = set->hash(elem, set->elem_size) % set->size;
+    if(elem == NULL) {
+        return false;
+    }
+
+    size_t idx = set->hash(elem, set->elem_size) % set->size;
     struct ElemNode **pp_node = &set->elem_node[idx];
-    while(*pp_node) {
+    while(*pp_node != NULL) {
         if(set->equals((*pp_node)->element, elem)) {
             struct ElemNode *del = *pp_node;
             *pp_node = del->next;
             free(del->element);
             free(del);
             set->count--;
+
             return true;
         }
         pp_node = &(*pp_node)->next;
     }
+
     return false;
 }
 
@@ -113,17 +120,19 @@ bool lyset_pop(LySet_t *set, void *out)
     LYDSS_ASSERT(out);
 
     for(size_t i = 0; i < set->size; i++) {
-        if(set->elem_node[i]) {
+        if(set->elem_node[i] != NULL) {
             struct ElemNode *node = set->elem_node[i];
             memcpy(out, node->element, set->elem_size);
             set->elem_node[i] = node->next;
             free(node->element);
             free(node);
             set->count--;
+
             return true;
         }
     }
-    return false; /* 空集合 */
+
+    return false;
 }
 
 /// @brief 移除指定容器里所有的元素
@@ -133,7 +142,7 @@ void lyset_erase(LySet_t *set)
 
     for(size_t i = 0; i < set->size; i++) {
         struct ElemNode *node = set->elem_node[i];
-        while(node) {
+        while(node != NULL) {
             struct ElemNode *next = node->next;
             free(node->element);
             free(node);
@@ -151,7 +160,7 @@ void lyset_destroy(LySet_t *set)
 
     for(size_t i = 0; i < set->size; i++) {
         struct ElemNode *node = set->elem_node[i];
-        while(node) {
+        while(node != NULL) {
             struct ElemNode *next = node->next;
             free(node->element);
             free(node);
@@ -160,7 +169,6 @@ void lyset_destroy(LySet_t *set)
     }
     free(set);
 }
-
 
 /// @brief 得到集合的元素数量
 size_t lyset_count(const LySet_t *set)
@@ -174,13 +182,18 @@ size_t lyset_count(const LySet_t *set)
 bool lyset_contains(const LySet_t *set, const void *elem)
 {
     LYDSS_ASSERT(set);
-    if(elem == NULL)
-        return false;
 
-    unsigned idx = set->hash(elem, set->elem_size) % set->size;
-    for(struct ElemNode *node = set->elem_node[idx]; node; node = node->next)
-        if(set->equals(node->element, elem))
+    if(elem == NULL) {
+        return false;
+    }
+
+    size_t idx = set->hash(elem, set->elem_size) % set->size;
+    for(struct ElemNode *node = set->elem_node[idx]; node != NULL; node = node->next) {
+        if(set->equals(node->element, elem)) {
             return true;
+        }
+    }
+
     return false;
 }
 
@@ -190,24 +203,43 @@ LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other)
     LYDSS_ASSERT(self);
     LYDSS_ASSERT(other);
 
-    bool self_in_other = true, other_in_self = true, has_inter = false;
-    for(size_t i = 0; i < self->size; i++)
-        for(struct ElemNode *node = self->elem_node[i]; node; node = node->next) {
-            if(lyset_contains(other, node->element))
+    bool self_in_other = true;
+    bool other_in_self = true;
+    bool has_inter = false;
+
+    for(size_t i = 0; i < self->size; i++) {
+        for(struct ElemNode *node = self->elem_node[i]; node != NULL; node = node->next) {
+            if(lyset_contains(other, node->element)) {
                 has_inter = true;
-            else
+            }
+            else {
                 self_in_other = false;
+            }
         }
-    for(size_t i = 0; i < other->size; i++)
-        for(struct ElemNode *node = other->elem_node[i]; node; node = node->next)
+    }
+
+    for(size_t i = 0; i < other->size; i++) {
+        for(struct ElemNode *node = other->elem_node[i]; node != NULL; node = node->next) {
             if(!lyset_contains(self, node->element)) {
                 other_in_self = false;
                 break;
             }
-    if(self_in_other && other_in_self) return LySetRelation_SAME;
-    if(self_in_other)                  return LySetRelation_PROSUB;
-    if(other_in_self)                  return LySetRelation_PROSUP;
-    if(has_inter)                      return LySetRelation_INTER;
+        }
+    }
+
+    if(self_in_other && other_in_self) {
+        return LySetRelation_SAME;
+    }
+    if(self_in_other) {
+        return LySetRelation_PROSUB;
+    }
+    if(other_in_self) {
+        return LySetRelation_PROSUP;
+    }
+    if(has_inter) {
+        return LySetRelation_INTER;
+    }
+
     return LySetRelation_NONE;
 }
 

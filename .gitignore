@@ -65,6 +65,12 @@ dev/RedPandaIDE/*.res
 dev/RedPandaIDE/*.debug
 dev/RedPandaIDE/*.bookmarks
 
+# clangd
+.cache/
+
+# Agent
+.kiro/
+
 # Other files and folders
 out/
 build/

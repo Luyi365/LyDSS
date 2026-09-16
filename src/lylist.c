@@ -11,7 +11,6 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 #include "../inc/lydss_api.h"
 
 /// @brief 创建链表
@@ -35,8 +34,7 @@ void lylist_destroy(LyList_t *list)
     LYDSS_ASSERT(list);
 
     LyListNode_t *cur_node = list->head;
-    while(cur_node)
-    {
+    while(cur_node != NULL) {
         LyListNode_t *next_node = cur_node->next;
         free(cur_node);
         cur_node = next_node;
@@ -104,10 +102,12 @@ LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *dat
     new_node->data = data;
     new_node->next = node;
     new_node->prev = node->prev;
-    if(node->prev)
+    if(node->prev != NULL) {
         node->prev->next = new_node;
-    else
+    }
+    else {
         list->head = new_node;
+    }
     node->prev = new_node;
 
     return new_node;
@@ -127,10 +127,12 @@ LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data
     new_node->data = data;
     new_node->prev = node;
     new_node->next = node->next;
-    if(node->next)
+    if(node->next != NULL) {
         node->next->prev = new_node;
-    else
+    }
+    else {
         list->tail = new_node;
+    }
     node->next = new_node;
 
     return new_node;
@@ -167,14 +169,19 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node)
     LYDSS_ASSERT(node);
 
     void *node_data = node->data;
-    if(node->prev)
+    if(node->prev != NULL) {
         node->prev->next = node->next;
-    else
+    }
+    else {
         list->head = node->next;
-    if(node->next)
+    }
+
+    if(node->next != NULL) {
         node->next->prev = node->prev;
-    else
+    }
+    else {
         list->tail = node->prev;
+    }
     free(node);
 
     return node_data;
@@ -193,8 +200,16 @@ void lylist_swap(LyListNode_t *a, LyListNode_t *b)
     a->next = b->next;
     b->next = tmp;
 
-    if(a->prev) a->prev->next = a;
-    if(a->next) a->next->prev = a;
-    if(b->prev) b->prev->next = b;
-    if(b->next) b->next->prev = b;
+    if(a->prev != NULL) {
+        a->prev->next = a;
+    }
+    if(a->next != NULL) {
+        a->next->prev = a;
+    }
+    if(b->prev != NULL) {
+        b->prev->next = b;
+    }
+    if(b->next != NULL) {
+        b->next->prev = b;
+    }
 }

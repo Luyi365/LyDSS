@@ -9,151 +9,210 @@
  * @note
  * Matters related to this document.
  */
+
 #include <stdlib.h>
 #include <string.h>
 #include "../inc/lydss_api.h"
 
-#define INITIAL_CAPACITY 16
-#define LOAD_FACTOR 0.75
+#define INITIAL_CAPACITY 16     ///< 槽位初始数量
+#define LOAD_FACTOR 0.75        ///< 触发扩容的负载因子
 
-typedef struct lytable_node {
-    char *key;
-    void *value;
-    struct lytable_node *next;
-} lytable_node_t;
+struct LyTableNode {
+    char *key;                  ///< 键的副本
+    void *value;                ///< 值指针
+    struct LyTableNode *next;   ///< 同槽位的后继节点
+};
 
-/* 默认哈希（FNV-1a），用户不传时用这个 */
-static size_t default_hash(const char *key) 
+struct LyTable {
+    struct LyTableNode **slots; ///< 槽位数组
+    size_t capacity;            ///< 槽位数量
+    size_t size;                ///< 键值对数量
+    LyTableHash_t hash;         ///< 用户提供的哈希函数
+};
+
+static size_t table_hash_default(const char *key);
+static int table_resize_slots(LyTable_t *table, size_t new_cap);
+
+/// @brief 创建表
+LyTable_t *lytable_create(LyTableHash_t hash)
 {
-    size_t h = 2166136261u;
-    while (*key) {
-        h ^= (unsigned char)*key++;
-        h *= 16777619u;
-    }
-    return h;
-}
-
-// lytable *lytable_config(INITIAL_CAPACITY, LOAD_FACTOR, fn);
-
-lytable *lytable_create(lytable_hash_fn fn) 
-{
-    lytable *t = malloc(sizeof(*t));
-    if (!t) return NULL;
-    t->capacity = INITIAL_CAPACITY;
-    t->size = 0;
-    t->hash = fn ? fn : default_hash;   /* 传 NULL 则用默认 */
-    t->slots = calloc(t->capacity, sizeof(lytable_node_t *));
-    if (!t->slots) {
-        free(t);
+    LyTable_t *table = malloc(sizeof(LyTable_t));
+    if(table == NULL) {
         return NULL;
     }
-    return t;
+
+    table->capacity = INITIAL_CAPACITY;
+    table->size = 0;
+    table->hash = hash ? hash : table_hash_default;
+
+    table->slots = calloc(table->capacity, sizeof(struct LyTableNode *));
+    if(table->slots == NULL) {
+        free(table);
+        return NULL;
+    }
+
+    return table;
 }
 
-static int resize(lytable *t, size_t new_cap) 
+/// @brief 插入或更新键值对
+/// @note 负载达到 LOAD_FACTOR 时先扩容，键以副本存储，值只保留指针
+int lytable_set(LyTable_t *table, const char *key, void *value)
 {
-    lytable_node_t **ns = calloc(new_cap, sizeof(lytable_node_t *));
-    if (!ns) return -1;
-    for (size_t i = 0; i < t->capacity; i++) {
-        lytable_node_t *n = t->slots[i];
-        while (n) {
-            lytable_node_t *next = n->next;
-            size_t idx = t->hash(n->key) % new_cap;
-            n->next = ns[idx];
-            ns[idx] = n;
-            n = next;
-        }
-    }
-    free(t->slots);
-    t->slots = ns;
-    t->capacity = new_cap;
-    return 0;
-}
-
-int lytable_set(lytable *t, const char *key, void *value) 
-{
-    if (!t || !key) return -1;
-    /* 扩容检查 */
-    if ((double)t->size / t->capacity >= LOAD_FACTOR) {
-        if (resize(t, t->capacity * 2) != 0) return -1;
-    }
-    size_t idx = t->hash(key) % t->capacity;
-    lytable_node_t *n = t->slots[idx];
-    /* 已存在则更新 */
-    while (n) {
-        if (strcmp(n->key, key) == 0) {
-            n->value = value;
-            return 0;
-        }
-        n = n->next;
-    }
-    /* 新节点，头插 */
-    lytable_node_t *nn = malloc(sizeof(*nn));
-    if (!nn) return -1;
-    nn->key = malloc(strlen(key) + 1);
-    if (!nn->key) {
-        free(nn);
+    if(table == NULL
+        || key == NULL) {
         return -1;
     }
-    strcpy(nn->key, key);
-    nn->value = value;
-    nn->next = t->slots[idx];
-    t->slots[idx] = nn;
-    t->size++;
+
+    if((double)table->size / table->capacity >= LOAD_FACTOR) {
+        if(table_resize_slots(table, table->capacity * 2) != 0) {
+            return -1;
+        }
+    }
+
+    size_t idx = table->hash(key) % table->capacity;
+    for(struct LyTableNode *node = table->slots[idx]; node != NULL; node = node->next) {
+        if(strcmp(node->key, key) == 0) {
+            node->value = value;
+            return 0;
+        }
+    }
+
+    struct LyTableNode *new_node = malloc(sizeof(struct LyTableNode));
+    if(new_node == NULL) {
+        return -1;
+    }
+
+    new_node->key = malloc(strlen(key) + 1);
+    if(new_node->key == NULL) {
+        free(new_node);
+        return -1;
+    }
+
+    strcpy(new_node->key, key);
+    new_node->value = value;
+    new_node->next = table->slots[idx];
+    table->slots[idx] = new_node;
+    table->size++;
+
     return 0;
 }
 
-void *lytable_get(lytable *t, const char *key) 
+/// @brief 查找键值对
+void *lytable_get(LyTable_t *table, const char *key)
 {
-    if (!t || !key) return NULL;
-    size_t idx = t->hash(key) % t->capacity;
-    lytable_node_t *n = t->slots[idx];
-    while (n) {
-        if (strcmp(n->key, key) == 0) return n->value;
-        n = n->next;
+    if(table == NULL
+        || key == NULL) {
+        return NULL;
     }
+
+    size_t idx = table->hash(key) % table->capacity;
+    for(struct LyTableNode *node = table->slots[idx]; node != NULL; node = node->next) {
+        if(strcmp(node->key, key) == 0) {
+            return node->value;
+        }
+    }
+
     return NULL;
 }
 
-void *lytable_remove(lytable *t, const char *key) 
+/// @brief 删除键值对
+void *lytable_remove(LyTable_t *table, const char *key)
 {
-    if (!t || !key) return NULL;
-    size_t idx = t->hash(key) % t->capacity;
-    lytable_node_t *n = t->slots[idx];
-    lytable_node_t *prev = NULL;
-    while (n) {
-        if (strcmp(n->key, key) == 0) {
-            if (prev) prev->next = n->next;
-            else t->slots[idx] = n->next;
-            void *v = n->value;
-            free(n->key);
-            free(n);
-            t->size--;
-            return v;
-        }
-        prev = n;
-        n = n->next;
+    if(table == NULL
+        || key == NULL) {
+        return NULL;
     }
+
+    size_t idx = table->hash(key) % table->capacity;
+    struct LyTableNode *prev = NULL;
+    struct LyTableNode *node = table->slots[idx];
+    while(node != NULL) {
+        if(strcmp(node->key, key) == 0) {
+            if(prev != NULL) {
+                prev->next = node->next;
+            }
+            else {
+                table->slots[idx] = node->next;
+            }
+
+            void *value = node->value;
+            free(node->key);
+            free(node);
+            table->size--;
+
+            return value;
+        }
+        prev = node;
+        node = node->next;
+    }
+
     return NULL;
 }
 
-size_t lytable_size(lytable *t) 
+/// @brief 获取键值对数量
+size_t lytable_size(LyTable_t *table)
 {
-    return t ? t->size : 0;
+    return table != NULL ? table->size : 0;
 }
 
-void lytable_destroy(lytable *t) 
+/// @brief 释放表
+/// @note 不释放 value 指向的内存，由调用者负责
+void lytable_destroy(LyTable_t *table)
 {
-    if (!t) return;
-    for (size_t i = 0; i < t->capacity; i++) {
-        lytable_node_t *n = t->slots[i];
-        while (n) {
-            lytable_node_t *next = n->next;
-            free(n->key);
-            free(n);
-            n = next;
+    if(table == NULL) {
+        return;
+    }
+
+    for(size_t i = 0; i < table->capacity; i++) {
+        struct LyTableNode *node = table->slots[i];
+        while(node != NULL) {
+            struct LyTableNode *next = node->next;
+            free(node->key);
+            free(node);
+            node = next;
         }
     }
-    free(t->slots);
-    free(t);
+
+    free(table->slots);
+    free(table);
+}
+
+/* --------------------------------- static --------------------------------- */
+/// @brief 默认哈希函数（FNV-1a）
+static size_t table_hash_default(const char *key)
+{
+    size_t hash = 2166136261u;
+
+    while(*key) {
+        hash ^= (unsigned char)*key++;
+        hash *= 16777619u;
+    }
+
+    return hash;
+}
+
+/// @brief 重建槽位数组并迁移全部节点
+static int table_resize_slots(LyTable_t *table, size_t new_cap)
+{
+    struct LyTableNode **new_slots = calloc(new_cap, sizeof(struct LyTableNode *));
+    if(new_slots == NULL) {
+        return -1;
+    }
+
+    for(size_t i = 0; i < table->capacity; i++) {
+        struct LyTableNode *node = table->slots[i];
+        while(node != NULL) {
+            struct LyTableNode *next = node->next;
+            size_t idx = table->hash(node->key) % new_cap;
+            node->next = new_slots[idx];
+            new_slots[idx] = node;
+            node = next;
+        }
+    }
+
+    free(table->slots);
+    table->slots = new_slots;
+    table->capacity = new_cap;
+
+    return 0;
 }

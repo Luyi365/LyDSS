@@ -1,3 +1,4 @@
 [submodule ".agents/skills/c-code-review"]
 	path = .agents/skills/c-code-review
-	url = git@github.com:Luyi365/c-code-review.git
+	url = https://github.com/Luyi365/c-code-review.git
+	ignore = dirty

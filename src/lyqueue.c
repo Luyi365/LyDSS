@@ -13,24 +13,19 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h> 
+#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <malloc.h>
 #include "../inc/lydss_api.h"
 
 struct LyQueue {
-    unsigned long length;   ///< 队列可容纳的成员数量
-    unsigned long item_size;    ///< 单个成员的大小（单位：字节）
-
-    unsigned long en_index;     ///< 入队位置索引
-    unsigned long de_index;     ///< 出队位置索引
-
-    unsigned long count;        ///< 队列中成员的数量
-
-    bool is_static;             ///< 成员区是否由调用者提供
-
-    void *items;    ///< 成员区
+    void *items;                    ///< 成员区
+    unsigned long length;           ///< 队列可容纳的成员数量
+    unsigned long item_size;        ///< 单个成员的大小（单位：字节）
+    unsigned long en_index;         ///< 入队位置索引
+    unsigned long de_index;         ///< 出队位置索引
+    unsigned long count;            ///< 队列中成员的数量
+    bool is_static;                 ///< 成员区是否由调用者提供
 };
 
 /// @brief 创建一个队列

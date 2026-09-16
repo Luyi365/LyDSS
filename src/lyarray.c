@@ -26,7 +26,7 @@ struct LyArray {
     bool is_static;             ///< 成员区是否由调用者提供
 };
 
-static void *_item_address(LyArray_t *array, unsigned long index);
+static void *array_locate_item(LyArray_t *array, unsigned long index);
 
 /// @brief 创建一个数组
 /// @note 成员区清零后交付
@@ -78,7 +78,7 @@ bool lyarray_set(LyArray_t *array, unsigned long index, const void *item)
         return false;
     }
 
-    memcpy(_item_address(array, index), item, array->item_size);
+    memcpy(array_locate_item(array, index), item, array->item_size);
 
     return true;
 }
@@ -92,7 +92,7 @@ void *lyarray_get(LyArray_t *array, unsigned long index)
         return NULL;
     }
 
-    return _item_address(array, index);
+    return array_locate_item(array, index);
 }
 
 /// @brief 读取指定下标的成员到缓冲区
@@ -105,7 +105,7 @@ bool lyarray_read(LyArray_t *array, unsigned long index, void *buf)
         return false;
     }
 
-    memcpy(buf, _item_address(array, index), array->item_size);
+    memcpy(buf, array_locate_item(array, index), array->item_size);
 
     return true;
 }
@@ -144,7 +144,7 @@ unsigned long lyarray_item_size(LyArray_t *array)
 
 /* --------------------------------- static --------------------------------- */
 /// @brief 计算指定下标成员的地址
-static void *_item_address(LyArray_t *array, unsigned long index)
+static void *array_locate_item(LyArray_t *array, unsigned long index)
 {
     return (unsigned char *)array->buffer + index * array->item_size;
 }

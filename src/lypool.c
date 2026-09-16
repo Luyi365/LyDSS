@@ -50,18 +50,19 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h> 
+#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include "../inc/lydss_api.h"
 
 struct LyPool {
-    size_t size;            ///< 池大小，也就是存放的对象数量
-    bool is_static;         ///< 对象数组是否由调用者提供
+    size_t size;                    ///< 池大小，也就是存放的对象数量
+    bool is_static;                 ///< 对象数组是否由调用者提供
+
     struct LyPoolItem {
-        const char *name;
-        void *object;
-    } *items;    ///< 对象
+        const char *name;           ///< 对象名称
+        void *object;               ///< 对象指针
+    } *items;                       ///< 对象数组
 };
 
 /// @brief 创建一个池

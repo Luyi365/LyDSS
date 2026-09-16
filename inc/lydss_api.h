@@ -13,7 +13,7 @@
 #ifndef LYDSS_API_H
 #define LYDSS_API_H
 
-#include <stdint.h> 
+#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include "lydss_cfg.h"
@@ -24,15 +24,21 @@
 
 #define LYDSS_ASSERT(EXPR)                                                       \
     do {                                                                         \
-        if (!(EXPR)) {                                                           \
+        if(!(EXPR)) {                                                            \
             LYDSS_PRINTF("(%s) has assert failed at %s.\n", #EXPR, __func__);    \
-            while (1) { __asm("int3"); }                                         \
+            while(1)                                                             \
+            {                                                                    \
+                __asm("int3");                                                   \
+            }                                                                    \
         }                                                                        \
-    } while (0)
+    } while(0)
 
 #else
 
-#define LYDSS_ASSERT(EXPR) do { (void)(EXPR); } while(0)
+#define LYDSS_ASSERT(EXPR)                                                       \
+    do {                                                                         \
+        (void)(EXPR);                                                            \
+    } while(0)
 
 #endif /* LYDSS_ASSERT_ENABLED */
 
@@ -373,7 +379,7 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node);
 void lylist_swap(LyListNode_t *a, LyListNode_t *b);
 
 #define LYLIST_FOREACH(list, node) \
-    for (LyListNode_t *node = (list)->head; node; node = node->next)
+    for(LyListNode_t *node = (list)->head; node; node = node->next)
 
 /* ------------------------------------ 流 ----------------------------------- */
 typedef unsigned char cell_t;     ///< 默认以字节为单位
@@ -441,66 +447,61 @@ size_t lystream_clean(LyStream_t *stream);
 void lystream_delete(LyStream_t *stream);
 
 /* ------------------------------------ 表 ----------------------------------- */
-typedef size_t (*lytable_hash_fn)(const char *key);
-typedef struct {
-    struct lytable_node **slots;
-    size_t capacity;
-    size_t size;
-    lytable_hash_fn hash;   /* 用户提供的哈希函数 */
-} lytable;
+typedef struct LyTable LyTable_t;
+typedef size_t (*LyTableHash_t)(const char *key);
 
 /**
  * @brief 创建表
  *
- * @param fn 哈希函数
- * @return lytable 表
+ * @param hash 哈希函数，传 NULL 则使用默认实现
+ * @return LyTable_t 表
  */
-lytable *lytable_create(lytable_hash_fn fn);
-
-/**
- * @brief 释放表
- *
- * @param t 表
- *
- * @note 不释放 value 指向的内存，由调用者负责
- */
-void lytable_destroy(lytable *t);
+LyTable_t *lytable_create(LyTableHash_t hash);
 
 /**
  * @brief 插入或更新键值对
  *
- * @param t 表
+ * @param table 表
  * @param key 键
  * @param value 值
  * @return 0 成功，-1 内存不足
  */
-int lytable_set(lytable *t, const char *key, void *value);
+int lytable_set(LyTable_t *table, const char *key, void *value);
 
 /**
  * @brief 查找键值对
  *
- * @param t 表
+ * @param table 表
  * @param key 键
  * @return 找到返回 value，否则返回 NULL
  */
-void *lytable_get(lytable *t, const char *key);
+void *lytable_get(LyTable_t *table, const char *key);
 
 /**
  * @brief 删除键值对
  *
- * @param t 表
+ * @param table 表
  * @param key 键
  * @return 被删除的 value（找不到返回 NULL）
  */
-void *lytable_remove(lytable *t, const char *key);
+void *lytable_remove(LyTable_t *table, const char *key);
 
 /**
  * @brief 获取键值对数量
  *
- * @param t 表
+ * @param table 表
  * @return 键值对数量
  */
-size_t lytable_size(lytable *t);
+size_t lytable_size(LyTable_t *table);
+
+/**
+ * @brief 释放表
+ *
+ * @param table 表
+ *
+ * @note 不释放 value 指向的内存，由调用者负责
+ */
+void lytable_destroy(LyTable_t *table);
 
 /* ----------------------------------- 集合 ----------------------------------- */
 enum LySetRelation {
@@ -603,9 +604,9 @@ enum LyBucketMetaType {
 typedef enum LyBucketMetaType LyBucketMetaType_t;
 
 struct LyBucketMeta {
-    LyBucketMetaType_t type;///< 元数据类型
-    void *data;		///< 元数据（项副本/ 附属数据）
-    size_t size;	///< 元数据大小
+    LyBucketMetaType_t type;    ///< 元数据类型
+    void *data;                 ///< 元数据（项副本 / 附属数据）
+    size_t size;                ///< 元数据大小
 };
 typedef struct LyBucketMeta LyBucketMeta_t;
 
