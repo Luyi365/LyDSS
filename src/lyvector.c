@@ -18,13 +18,16 @@
  * 因增长依赖重分配，不提供静态构造。
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_VECTOR_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <limits.h>
-#include "../inc/lydss_api.h"
 
 #define LYVECTOR_GROWTH_FACTOR 2    ///< 容量增长倍数
 
@@ -263,3 +266,5 @@ static void *vector_locate_item(LyVector_t *vector, unsigned long index)
 {
     return (unsigned char *)vector->buffer + index * vector->item_size;
 }
+
+#endif /* LYDSS_VECTOR_ENABLED */

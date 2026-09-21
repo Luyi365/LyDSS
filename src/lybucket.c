@@ -29,9 +29,12 @@
  */
 
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_BUCKET_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/lydss_api.h"
 
 struct LyBucketNode {
     const char *name;               ///< 索引名
@@ -388,3 +391,5 @@ static void *bucket_dup_memory(const void *src, size_t size)
 
     return memcpy(dest, src, size);
 }
+
+#endif /* LYDSS_BUCKET_ENABLED */

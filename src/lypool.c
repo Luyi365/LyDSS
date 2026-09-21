@@ -48,12 +48,15 @@
  */
 
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_POOL_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../inc/lydss_api.h"
 
 struct LyPool {
     size_t size;                    ///< 池大小，也就是存放的对象数量
@@ -172,3 +175,5 @@ void lypool_delete(LyPool_t *pool)
     free(pool->items);
     free(pool);
 }
+
+#endif /* LYDSS_POOL_ENABLED */

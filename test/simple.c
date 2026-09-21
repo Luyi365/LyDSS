@@ -10,9 +10,12 @@
  * Matters related to this document.
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_STACK_ENABLED
+
 #include <stdio.h>
 #include <string.h>
-#include "../inc/lydss_api.h"
 
 int simple()
 {
@@ -33,3 +36,5 @@ int simple()
     lystack_delete(stack);
     return 0;
 }
+
+#endif /* LYDSS_STACK_ENABLED */

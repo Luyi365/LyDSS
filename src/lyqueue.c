@@ -11,12 +11,15 @@
  */
 
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_QUEUE_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../inc/lydss_api.h"
 
 struct LyQueue {
     void *items;                    ///< 成员区
@@ -172,3 +175,5 @@ bool lyqueue_is_full(LyQueue_t *queue)
 
     return queue->count >= queue->length;
 }
+
+#endif /* LYDSS_QUEUE_ENABLED */

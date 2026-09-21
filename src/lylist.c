@@ -10,8 +10,11 @@
  * Matters related to this document.
  */
 
-#include <stdlib.h>
 #include "../inc/lydss_api.h"
+
+#if LYDSS_LIST_ENABLED
+
+#include <stdlib.h>
 
 /// @brief 创建链表
 LyList_t *lylist_create(void)
@@ -213,3 +216,5 @@ void lylist_swap(LyListNode_t *a, LyListNode_t *b)
         b->next->prev = b;
     }
 }
+
+#endif /* LYDSS_LIST_ENABLED */

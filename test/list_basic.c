@@ -10,9 +10,12 @@
  * Matters related to this document.
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_LIST_ENABLED
+
 #include <stdio.h>
 #include <string.h>
-#include "../inc/lydss_api.h"
 
 int list_basic()
 {
@@ -30,3 +33,5 @@ int list_basic()
 
     return 0;
 }
+
+#endif /* LYDSS_LIST_ENABLED */

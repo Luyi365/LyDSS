@@ -12,12 +12,15 @@
  * 「已用多少」属于上层容器的不变式，由 vector、queue、stack 各自表达。
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_ARRAY_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../inc/lydss_api.h"
 
 struct LyArray {
     void *buffer;               ///< 成员区
@@ -148,3 +151,5 @@ static void *array_locate_item(LyArray_t *array, unsigned long index)
 {
     return (unsigned char *)array->buffer + index * array->item_size;
 }
+
+#endif /* LYDSS_ARRAY_ENABLED */

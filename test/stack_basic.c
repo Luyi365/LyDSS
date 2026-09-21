@@ -10,8 +10,11 @@
  * Matters related to this document.
  */
 
-#include <stdio.h>
 #include "../inc/lydss_api.h"
+
+#if LYDSS_STACK_ENABLED
+
+#include <stdio.h>
 
 int stack_basic()
 {
@@ -32,3 +35,5 @@ int stack_basic()
     lystack_delete(stack);
     return 0;
 }
+
+#endif /* LYDSS_STACK_ENABLED */

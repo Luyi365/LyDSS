@@ -10,8 +10,11 @@
  * Matters related to this document.
  */
 
-#include <stdio.h>
 #include "../inc/lydss_api.h"
+
+#if LYDSS_VECTOR_ENABLED
+
+#include <stdio.h>
 
 int vector_basic()
 {
@@ -85,3 +88,5 @@ int vector_basic()
 
     return 0;
 }
+
+#endif /* LYDSS_VECTOR_ENABLED */

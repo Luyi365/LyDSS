@@ -10,9 +10,12 @@
  * Matters related to this document.
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_TABLE_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/lydss_api.h"
 
 #define INITIAL_CAPACITY 16     ///< 槽位初始数量
 #define LOAD_FACTOR 0.75        ///< 触发扩容的负载因子
@@ -216,3 +219,5 @@ static int table_resize_slots(LyTable_t *table, size_t new_cap)
 
     return 0;
 }
+
+#endif /* LYDSS_TABLE_ENABLED */

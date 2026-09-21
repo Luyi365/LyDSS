@@ -10,9 +10,12 @@
  * Matters related to this document.
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_STREAM_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/lydss_api.h"
 
 struct LyStream {
     size_t head;         ///< 读游标
@@ -138,3 +141,5 @@ void lystream_delete(LyStream_t *stream)
 
     free(stream);
 }
+
+#endif /* LYDSS_STREAM_ENABLED */

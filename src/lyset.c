@@ -10,12 +10,15 @@
  * Matters related to this document.
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_SET_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../inc/lydss_api.h"
 
 struct LySet {
     size_t size;                    ///< 槽位数量
@@ -243,4 +246,4 @@ LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other)
     return LySetRelation_NONE;
 }
 
-
+#endif /* LYDSS_SET_ENABLED */

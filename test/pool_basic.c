@@ -10,8 +10,11 @@
  * Matters related to this document.
  */
 
-#include <stdio.h>
 #include "../inc/lydss_api.h"
+
+#if LYDSS_POOL_ENABLED
+
+#include <stdio.h>
 
 int pool_basic()
 {
@@ -24,3 +27,5 @@ int pool_basic()
 
     return 0;
 }
+
+#endif /* LYDSS_POOL_ENABLED */

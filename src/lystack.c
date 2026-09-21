@@ -10,13 +10,15 @@
  * Matters related to this document.
  */
 
+#include "../inc/lydss_api.h"
+
+#if LYDSS_STACK_ENABLED
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../inc/lydss_api.h"
-
 
 struct LyStack {
     void *buffer;               ///< 栈数据
@@ -155,3 +157,5 @@ bool lystack_is_full(LyStack_t *stack)
 
     return stack->top >= stack->length;
 }
+
+#endif /* LYDSS_STACK_ENABLED */

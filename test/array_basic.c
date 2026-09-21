@@ -10,8 +10,11 @@
  * Matters related to this document.
  */
 
-#include <stdio.h>
 #include "../inc/lydss_api.h"
+
+#if LYDSS_ARRAY_ENABLED
+
+#include <stdio.h>
 
 int array_basic()
 {
@@ -47,3 +50,5 @@ int array_basic()
 
     return 0;
 }
+
+#endif /* LYDSS_ARRAY_ENABLED */

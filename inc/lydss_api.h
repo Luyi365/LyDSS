@@ -43,6 +43,8 @@
 #endif /* LYDSS_ASSERT_ENABLED */
 
 /* ------------------------------------ 池 ----------------------------------- */
+#if LYDSS_POOL_ENABLED
+
 typedef struct LyPool LyPool_t;
 typedef struct LyPoolItem LyPoolItem_t;
 
@@ -97,98 +99,244 @@ void lypool_clear(LyPool_t *pool, const char *const name);
  */
 void lypool_delete(LyPool_t *pool);
 
+#endif /* LYDSS_POOL_ENABLED */
 
-/* -------------------------------- 队列(FIFO) -------------------------------- */
-typedef struct LyQueue LyQueue_t;
+/* ----------------------------------- 数组 ----------------------------------- */
+#if LYDSS_ARRAY_ENABLED
 
 /**
- * @brief 创建一个队列
- *
- * @param len 队列长度
- * @param item_size 单个成员大小
- * @return LyQueue_t
+ * @note
+ * 为 C 原生数组补齐运行时元数据（长度与成员大小）的定长存储原语。
+ * 全部 length 个槽位自始存在，索引边界对 length 判定，不维护已用数量。
+ * 「已用多少」属于上层容器的不变式，由 vector、queue、stack 各自表达。
  */
-LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size);
+typedef struct LyArray LyArray_t;
 
 /**
- * @brief 创建一个静态队列
+ * @brief 创建一个数组
  *
- * @param queue 队列
- * @param buf 队列缓冲区
- * @param len 队列长度
+ * @param len 数组长度
  * @param item_size 单个成员大小
+ * @return LyArray_t
+ *
+ * @note 成员区清零后交付
  */
-void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsigned long item_size);
+LyArray_t *lyarray_create(unsigned long len, unsigned long item_size);
 
 /**
- * @brief 数据入队
+ * @brief 创建一个静态数组
  *
- * @param queue 队列
+ * @param array 数组
+ * @param buf 数组缓冲区
+ * @param len 数组长度
+ * @param item_size 单个成员大小
+ *
+ * @note 不改动 buf 的既有内容，槽位初值由调用者负责
+ */
+void lyarray_create_static(LyArray_t *array, void *buf, unsigned long len, unsigned long item_size);
+
+/**
+ * @brief 写入指定下标的成员
+ *
+ * @param array 数组
+ * @param index 下标
  * @param item 数据项
- * @return true 入队成功，false 入队失败
+ * @return true 写入成功，false 下标越界
  */
-bool lyqueue_send(LyQueue_t *queue, void *item);
+bool lyarray_set(LyArray_t *array, unsigned long index, const void *item);
 
 /**
- * @brief 数据出队
+ * @brief 获取指定下标成员的地址
  *
- * @param queue 队列
+ * @param array 数组
+ * @param index 下标
+ * @return void* 成员地址，下标越界返回 NULL
+ *
+ * @note 返回的是成员区内部地址，数组销毁后失效
+ */
+void *lyarray_get(LyArray_t *array, unsigned long index);
+
+/**
+ * @brief 读取指定下标的成员到缓冲区
+ *
+ * @param array 数组
+ * @param index 下标
  * @param buf 缓冲区
- * @return true 出队成功，false 出队失败
+ * @return true 读取成功，false 下标越界
  */
-bool lyqueue_receive(LyQueue_t *queue, void *buf);
+bool lyarray_read(LyArray_t *array, unsigned long index, void *buf);
 
 /**
- * @brief 预读队列数据
+ * @brief 删除数组
  *
- * @param queue 队列
+ * @param array 数组
+ *
+ * @note 静态数组只解除成员区绑定，不释放调用者提供的内存与句柄
+ */
+void lyarray_delete(LyArray_t *array);
+
+/**
+ * @brief 获取数组可容纳的成员数量
+ *
+ * @param array 数组
+ * @return 数组长度
+ */
+unsigned long lyarray_length(LyArray_t *array);
+
+/**
+ * @brief 获取单个成员的大小
+ *
+ * @param array 数组
+ * @return 成员大小（单位：字节）
+ */
+unsigned long lyarray_item_size(LyArray_t *array);
+
+#endif /* LYDSS_ARRAY_ENABLED */
+
+/* ---------------------------------- 变长数组 ---------------------------------- */
+#if LYDSS_VECTOR_ENABLED
+
+/**
+ * @note
+ * 自持成员区的变长数组。size 为已用数量，capacity 为成员区可容纳的数量，
+ * 容量不足时按倍数增长，使单次追加的摊还代价为 O(1)。
+ * 空闲容量不做初始化，索引边界对 size 判定，空闲槽位对外不可见。
+ * 重分配可能迁移成员区，此前由 lyvector_get 取得的地址随之失效。
+ * 因增长依赖重分配，不提供静态构造。
+ */
+typedef struct LyVector LyVector_t;
+
+/**
+ * @brief 创建一个变长数组
+ *
+ * @param len 初始容量
+ * @param item_size 单个成员大小
+ * @return LyVector_t
+ */
+LyVector_t *lyvector_create(unsigned long len, unsigned long item_size);
+
+/**
+ * @brief 预留容量
+ *
+ * @param vector 变长数组
+ * @param len 期望容量
+ * @return true 预留成功，false 内存不足
+ *
+ * @note 只增不减；预留足够后的追加不会再触发重分配
+ */
+bool lyvector_reserve(LyVector_t *vector, unsigned long len);
+
+/**
+ * @brief 在尾部追加成员
+ *
+ * @param vector 变长数组
+ * @param item 数据项
+ * @return true 追加成功，false 内存不足
+ *
+ * @note 容量不足时触发重分配，此前取得的成员地址随之失效
+ */
+bool lyvector_push_rear(LyVector_t *vector, const void *item);
+
+/**
+ * @brief 写入指定下标的成员
+ *
+ * @param vector 变长数组
+ * @param index 下标
+ * @param item 数据项
+ * @return true 写入成功，false 下标越界
+ *
+ * @note 边界对 size 判定，不能越过尾部写进空闲容量
+ */
+bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item);
+
+/**
+ * @brief 获取指定下标成员的地址
+ *
+ * @param vector 变长数组
+ * @param index 下标
+ * @return void* 成员地址，下标越界返回 NULL
+ *
+ * @note 任何触发重分配的操作之后该地址失效
+ */
+void *lyvector_get(LyVector_t *vector, unsigned long index);
+
+/**
+ * @brief 读取指定下标的成员到缓冲区
+ *
+ * @param vector 变长数组
+ * @param index 下标
  * @param buf 缓冲区
- * @return true 预读成功，false 预读失败
+ * @return true 读取成功，false 下标越界
  */
-bool lyqueue_peek(LyQueue_t *queue, void *buf);
+bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf);
 
 /**
- * @brief 清空队列
+ * @brief 取出尾部的成员
  *
- * @param queue 队列
- * @return true 清空成功，false 清空失败
+ * @param vector 变长数组
+ * @param buf 缓冲区，为 NULL 时丢弃取出的成员
+ * @return true 取出成功，false 为空
+ *
+ * @note 只减少 size，不收缩容量
  */
-bool lyqueue_clear(LyQueue_t *queue);
+bool lyvector_pop_rear(LyVector_t *vector, void *buf);
 
 /**
- * @brief 删除队列
+ * @brief 清空成员
  *
- * @param queue 队列
+ * @param vector 变长数组
+ * @return true 清空成功
  *
- * @note 静态队列只解除成员区绑定，不释放调用者提供的内存与句柄
+ * @note 只把 size 归零，容量保持不变
  */
-void lyqueue_delete(LyQueue_t *queue);
+bool lyvector_clear(LyVector_t *vector);
 
 /**
- * @brief 获取队列中当前的成员个数
+ * @brief 将容量收缩到当前成员数量
  *
- * @param queue 队列
- * @return 成员个数
+ * @param vector 变长数组
+ * @return true 收缩成功，false 内存不足
+ *
+ * @note 空 vector 保留一个槽位，避免出现零长度的底层存储
  */
-unsigned long lyqueue_count(LyQueue_t *queue);
+bool lyvector_shrink(LyVector_t *vector);
 
 /**
- * @brief 判断队列是否为空
+ * @brief 删除变长数组
  *
- * @param queue 队列
+ * @param vector 变长数组
+ */
+void lyvector_delete(LyVector_t *vector);
+
+/**
+ * @brief 获取当前成员数量
+ *
+ * @param vector 变长数组
+ * @return 成员数量
+ */
+unsigned long lyvector_size(LyVector_t *vector);
+
+/**
+ * @brief 获取当前容量
+ *
+ * @param vector 变长数组
+ * @return 容量
+ */
+unsigned long lyvector_capacity(LyVector_t *vector);
+
+/**
+ * @brief 判断是否为空
+ *
+ * @param vector 变长数组
  * @return true 为空，false 不为空
  */
-bool lyqueue_is_empty(LyQueue_t *queue);
+bool lyvector_is_empty(LyVector_t *vector);
 
-/**
- * @brief 判断队列是否已满
- *
- * @param queue 队列
- * @return true 已满，false 未满
- */
-bool lyqueue_is_full(LyQueue_t *queue);
+#endif /* LYDSS_VECTOR_ENABLED */
 
 /* --------------------------------- 栈(FILO) -------------------------------- */
+#if LYDSS_STACK_ENABLED
+
 typedef struct LyStack LyStack_t;
 
 /**
@@ -278,7 +426,105 @@ bool lystack_is_empty(LyStack_t *stack);
  */
 bool lystack_is_full(LyStack_t *stack);
 
+#endif /* LYDSS_STACK_ENABLED */
+
+/* -------------------------------- 队列(FIFO) -------------------------------- */
+#if LYDSS_QUEUE_ENABLED
+
+typedef struct LyQueue LyQueue_t;
+
+/**
+ * @brief 创建一个队列
+ *
+ * @param len 队列长度
+ * @param item_size 单个成员大小
+ * @return LyQueue_t
+ */
+LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size);
+
+/**
+ * @brief 创建一个静态队列
+ *
+ * @param queue 队列
+ * @param buf 队列缓冲区
+ * @param len 队列长度
+ * @param item_size 单个成员大小
+ */
+void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsigned long item_size);
+
+/**
+ * @brief 数据入队
+ *
+ * @param queue 队列
+ * @param item 数据项
+ * @return true 入队成功，false 入队失败
+ */
+bool lyqueue_send(LyQueue_t *queue, void *item);
+
+/**
+ * @brief 数据出队
+ *
+ * @param queue 队列
+ * @param buf 缓冲区
+ * @return true 出队成功，false 出队失败
+ */
+bool lyqueue_receive(LyQueue_t *queue, void *buf);
+
+/**
+ * @brief 预读队列数据
+ *
+ * @param queue 队列
+ * @param buf 缓冲区
+ * @return true 预读成功，false 预读失败
+ */
+bool lyqueue_peek(LyQueue_t *queue, void *buf);
+
+/**
+ * @brief 清空队列
+ *
+ * @param queue 队列
+ * @return true 清空成功，false 清空失败
+ */
+bool lyqueue_clear(LyQueue_t *queue);
+
+/**
+ * @brief 删除队列
+ *
+ * @param queue 队列
+ *
+ * @note 静态队列只解除成员区绑定，不释放调用者提供的内存与句柄
+ */
+void lyqueue_delete(LyQueue_t *queue);
+
+/**
+ * @brief 获取队列中当前的成员个数
+ *
+ * @param queue 队列
+ * @return 成员个数
+ */
+unsigned long lyqueue_count(LyQueue_t *queue);
+
+/**
+ * @brief 判断队列是否为空
+ *
+ * @param queue 队列
+ * @return true 为空，false 不为空
+ */
+bool lyqueue_is_empty(LyQueue_t *queue);
+
+/**
+ * @brief 判断队列是否已满
+ *
+ * @param queue 队列
+ * @return true 已满，false 未满
+ */
+bool lyqueue_is_full(LyQueue_t *queue);
+
+#endif /* LYDSS_QUEUE_ENABLED */
+
 /* ----------------------------------- 链表 ----------------------------------- */
+#if LYDSS_LIST_ENABLED
+
 typedef struct LyListNode {
     void *data;
     struct LyListNode *prev;
@@ -381,7 +627,11 @@ void lylist_swap(LyListNode_t *a, LyListNode_t *b);
 #define LYLIST_FOREACH(list, node) \
     for(LyListNode_t *node = (list)->head; node; node = node->next)
 
+#endif /* LYDSS_LIST_ENABLED */
+
 /* ------------------------------------ 流 ----------------------------------- */
+#if LYDSS_STREAM_ENABLED
+
 typedef unsigned char cell_t;     ///< 默认以字节为单位
 typedef struct LyStream LyStream_t;
 
@@ -446,7 +696,11 @@ size_t lystream_clean(LyStream_t *stream);
  */
 void lystream_delete(LyStream_t *stream);
 
+#endif /* LYDSS_STREAM_ENABLED */
+
 /* ------------------------------------ 表 ----------------------------------- */
+#if LYDSS_TABLE_ENABLED
+
 typedef struct LyTable LyTable_t;
 typedef size_t (*LyTableHash_t)(const char *key);
 
@@ -503,7 +757,11 @@ size_t lytable_size(LyTable_t *table);
  */
 void lytable_destroy(LyTable_t *table);
 
+#endif /* LYDSS_TABLE_ENABLED */
+
 /* ----------------------------------- 集合 ----------------------------------- */
+#if LYDSS_SET_ENABLED
+
 enum LySetRelation {
     LySetRelation_NONE,        /* 完全不相交 */
     LySetRelation_INTER,       /* 有交集，但互不包含 */
@@ -595,7 +853,11 @@ bool lyset_contains(const LySet_t *set, const void *elem);
  */
 LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other);
 
+#endif /* LYDSS_SET_ENABLED */
+
 /* ------------------------------------ 桶 ----------------------------------- */
+#if LYDSS_BUCKET_ENABLED
+
 enum LyBucketMetaType {
     LyBucketMetaType_NULL = 0,
     LyBucketMetaType_COPY,
@@ -748,230 +1010,6 @@ LyBucketNode_t *lybucket_post(LyBucket_t *bucket, const char *const name, void *
  */
 LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void *item, LyBucketMeta_t meta, const char *const at_name, bool at_before);
 
-/* ----------------------------------- 数组 ----------------------------------- */
-/**
- * @note
- * 为 C 原生数组补齐运行时元数据（长度与成员大小）的定长存储原语。
- * 全部 length 个槽位自始存在，索引边界对 length 判定，不维护已用数量。
- * 「已用多少」属于上层容器的不变式，由 vector、queue、stack 各自表达。
- */
-typedef struct LyArray LyArray_t;
-
-/**
- * @brief 创建一个数组
- *
- * @param len 数组长度
- * @param item_size 单个成员大小
- * @return LyArray_t
- *
- * @note 成员区清零后交付
- */
-LyArray_t *lyarray_create(unsigned long len, unsigned long item_size);
-
-/**
- * @brief 创建一个静态数组
- *
- * @param array 数组
- * @param buf 数组缓冲区
- * @param len 数组长度
- * @param item_size 单个成员大小
- *
- * @note 不改动 buf 的既有内容，槽位初值由调用者负责
- */
-void lyarray_create_static(LyArray_t *array, void *buf, unsigned long len, unsigned long item_size);
-
-/**
- * @brief 写入指定下标的成员
- *
- * @param array 数组
- * @param index 下标
- * @param item 数据项
- * @return true 写入成功，false 下标越界
- */
-bool lyarray_set(LyArray_t *array, unsigned long index, const void *item);
-
-/**
- * @brief 获取指定下标成员的地址
- *
- * @param array 数组
- * @param index 下标
- * @return void* 成员地址，下标越界返回 NULL
- *
- * @note 返回的是成员区内部地址，数组销毁后失效
- */
-void *lyarray_get(LyArray_t *array, unsigned long index);
-
-/**
- * @brief 读取指定下标的成员到缓冲区
- *
- * @param array 数组
- * @param index 下标
- * @param buf 缓冲区
- * @return true 读取成功，false 下标越界
- */
-bool lyarray_read(LyArray_t *array, unsigned long index, void *buf);
-
-/**
- * @brief 删除数组
- *
- * @param array 数组
- *
- * @note 静态数组只解除成员区绑定，不释放调用者提供的内存与句柄
- */
-void lyarray_delete(LyArray_t *array);
-
-/**
- * @brief 获取数组可容纳的成员数量
- *
- * @param array 数组
- * @return 数组长度
- */
-unsigned long lyarray_length(LyArray_t *array);
-
-/**
- * @brief 获取单个成员的大小
- *
- * @param array 数组
- * @return 成员大小（单位：字节）
- */
-unsigned long lyarray_item_size(LyArray_t *array);
-
-/* ---------------------------------- 变长数组 ---------------------------------- */
-/**
- * @note
- * 自持成员区的变长数组。size 为已用数量，capacity 为成员区可容纳的数量，
- * 容量不足时按倍数增长，使单次追加的摊还代价为 O(1)。
- * 空闲容量不做初始化，索引边界对 size 判定，空闲槽位对外不可见。
- * 重分配可能迁移成员区，此前由 lyvector_get 取得的地址随之失效。
- * 因增长依赖重分配，不提供静态构造。
- */
-typedef struct LyVector LyVector_t;
-
-/**
- * @brief 创建一个变长数组
- *
- * @param len 初始容量
- * @param item_size 单个成员大小
- * @return LyVector_t
- */
-LyVector_t *lyvector_create(unsigned long len, unsigned long item_size);
-
-/**
- * @brief 预留容量
- *
- * @param vector 变长数组
- * @param len 期望容量
- * @return true 预留成功，false 内存不足
- *
- * @note 只增不减；预留足够后的追加不会再触发重分配
- */
-bool lyvector_reserve(LyVector_t *vector, unsigned long len);
-
-/**
- * @brief 在尾部追加成员
- *
- * @param vector 变长数组
- * @param item 数据项
- * @return true 追加成功，false 内存不足
- *
- * @note 容量不足时触发重分配，此前取得的成员地址随之失效
- */
-bool lyvector_push_rear(LyVector_t *vector, const void *item);
-
-/**
- * @brief 写入指定下标的成员
- *
- * @param vector 变长数组
- * @param index 下标
- * @param item 数据项
- * @return true 写入成功，false 下标越界
- *
- * @note 边界对 size 判定，不能越过尾部写进空闲容量
- */
-bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item);
-
-/**
- * @brief 获取指定下标成员的地址
- *
- * @param vector 变长数组
- * @param index 下标
- * @return void* 成员地址，下标越界返回 NULL
- *
- * @note 任何触发重分配的操作之后该地址失效
- */
-void *lyvector_get(LyVector_t *vector, unsigned long index);
-
-/**
- * @brief 读取指定下标的成员到缓冲区
- *
- * @param vector 变长数组
- * @param index 下标
- * @param buf 缓冲区
- * @return true 读取成功，false 下标越界
- */
-bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf);
-
-/**
- * @brief 取出尾部的成员
- *
- * @param vector 变长数组
- * @param buf 缓冲区，为 NULL 时丢弃取出的成员
- * @return true 取出成功，false 为空
- *
- * @note 只减少 size，不收缩容量
- */
-bool lyvector_pop_rear(LyVector_t *vector, void *buf);
-
-/**
- * @brief 清空成员
- *
- * @param vector 变长数组
- * @return true 清空成功
- *
- * @note 只把 size 归零，容量保持不变
- */
-bool lyvector_clear(LyVector_t *vector);
-
-/**
- * @brief 将容量收缩到当前成员数量
- *
- * @param vector 变长数组
- * @return true 收缩成功，false 内存不足
- *
- * @note 空 vector 保留一个槽位，避免出现零长度的底层存储
- */
-bool lyvector_shrink(LyVector_t *vector);
-
-/**
- * @brief 删除变长数组
- *
- * @param vector 变长数组
- */
-void lyvector_delete(LyVector_t *vector);
-
-/**
- * @brief 获取当前成员数量
- *
- * @param vector 变长数组
- * @return 成员数量
- */
-unsigned long lyvector_size(LyVector_t *vector);
-
-/**
- * @brief 获取当前容量
- *
- * @param vector 变长数组
- * @return 容量
- */
-unsigned long lyvector_capacity(LyVector_t *vector);
-
-/**
- * @brief 判断是否为空
- *
- * @param vector 变长数组
- * @return true 为空，false 不为空
- */
-bool lyvector_is_empty(LyVector_t *vector);
-
+#endif /* LYDSS_BUCKET_ENABLED */
 
 #endif        /* LYDSS_API_H */

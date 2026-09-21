@@ -10,8 +10,11 @@
  * Matters related to this document.
  */
 
-#include <stdio.h>
 #include "../inc/lydss_api.h"
+
+#if LYDSS_STREAM_ENABLED
+
+#include <stdio.h>
 
 int stream_basic()
 {
@@ -50,3 +53,5 @@ int stream_basic()
 
     return 0;
 }
+
+#endif /* LYDSS_STREAM_ENABLED */
