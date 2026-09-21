@@ -22,6 +22,8 @@
 
 #if LYDSS_VECTOR_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -32,15 +34,12 @@
 #define LYVECTOR_GROWTH_FACTOR 2    ///< 容量增长倍数
 
 struct LyVector {
-    void *buffer;               ///< 成员区
-    unsigned long capacity;     ///< 成员区可容纳的成员数量
-    unsigned long item_size;    ///< 单个成员的大小（单位：字节）
+    LyStore_t store;              ///< 成员区描述，其中 base.length 即容量
     unsigned long size;         ///< 当前成员数量
 };
 
 static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need);
 static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len);
-static void *vector_locate_item(LyVector_t *vector, unsigned long index);
 
 /// @brief 创建一个变长数组
 LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
@@ -48,23 +47,16 @@ LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
     LYDSS_ASSERT(len);
     LYDSS_ASSERT(item_size);
 
-    if(len > ULONG_MAX / item_size) {
-        return NULL;
-    }
-
     LyVector_t *vector = malloc(sizeof(LyVector_t));
     if(vector == NULL) {
         return NULL;
     }
 
-    vector->buffer = malloc(len * item_size);
-    if(vector->buffer == NULL) {
+    if(lystore_alloc(&vector->store, len, item_size, false) == false) {
         free(vector);
         return NULL;
     }
 
-    vector->capacity = len;
-    vector->item_size = item_size;
     vector->size = 0;
 
     return vector;
@@ -76,7 +68,7 @@ bool lyvector_reserve(LyVector_t *vector, unsigned long len)
 {
     LYDSS_ASSERT(vector);
 
-    if(len <= vector->capacity) {
+    if(len <= vector->store.length) {
         return true;
     }
 
@@ -94,7 +86,7 @@ bool lyvector_push_rear(LyVector_t *vector, const void *item)
         return false;
     }
 
-    memcpy(vector_locate_item(vector, vector->size), item, vector->item_size);
+    memcpy(lystore_address(&vector->store, vector->size), item, vector->store.item_size);
     vector->size++;
 
     return true;
@@ -111,7 +103,7 @@ bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item)
         return false;
     }
 
-    memcpy(vector_locate_item(vector, index), item, vector->item_size);
+    memcpy(lystore_address(&vector->store, index), item, vector->store.item_size);
 
     return true;
 }
@@ -126,7 +118,7 @@ void *lyvector_get(LyVector_t *vector, unsigned long index)
         return NULL;
     }
 
-    return vector_locate_item(vector, index);
+    return lystore_address(&vector->store, index);
 }
 
 /// @brief 读取指定下标的成员到缓冲区
@@ -139,7 +131,7 @@ bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf)
         return false;
     }
 
-    memcpy(buf, vector_locate_item(vector, index), vector->item_size);
+    memcpy(buf, lystore_address(&vector->store, index), vector->store.item_size);
 
     return true;
 }
@@ -156,7 +148,7 @@ bool lyvector_pop_rear(LyVector_t *vector, void *buf)
 
     vector->size--;
     if(buf != NULL) {
-        memcpy(buf, vector_locate_item(vector, vector->size), vector->item_size);
+        memcpy(buf, lystore_address(&vector->store, vector->size), vector->store.item_size);
     }
 
     return true;
@@ -180,7 +172,7 @@ bool lyvector_shrink(LyVector_t *vector)
     LYDSS_ASSERT(vector);
 
     unsigned long new_len = vector->size > 0 ? vector->size : 1;
-    if(new_len >= vector->capacity) {
+    if(new_len >= vector->store.length) {
         return true;
     }
 
@@ -192,7 +184,7 @@ void lyvector_delete(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
 
-    free(vector->buffer);
+    lystore_free(&vector->store);
     free(vector);
 }
 
@@ -209,7 +201,7 @@ unsigned long lyvector_capacity(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
 
-    return vector->capacity;
+    return vector->store.length;
 }
 
 /// @brief 判断是否为空
@@ -224,11 +216,11 @@ bool lyvector_is_empty(LyVector_t *vector)
 /// @brief 确保容量至少能容纳 need 个成员，不足则按倍数增长
 static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need)
 {
-    if(need <= vector->capacity) {
+    if(need <= vector->store.length) {
         return true;
     }
 
-    unsigned long new_len = vector->capacity;
+    unsigned long new_len = vector->store.length;
     while(new_len < need) {
         if(new_len > ULONG_MAX / LYVECTOR_GROWTH_FACTOR) {
             new_len = need;     // 继续倍增会溢出，退化为按需分配
@@ -246,25 +238,7 @@ static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len)
 {
     LYDSS_ASSERT(new_len >= vector->size);
 
-    if(new_len > ULONG_MAX / vector->item_size) {
-        return false;       // 字节数会溢出
-    }
-
-    void *new_buffer = realloc(vector->buffer, new_len * vector->item_size);
-    if(new_buffer == NULL) {
-        return false;
-    }
-
-    vector->buffer = new_buffer;
-    vector->capacity = new_len;
-
-    return true;
-}
-
-/// @brief 计算指定下标成员的地址
-static void *vector_locate_item(LyVector_t *vector, unsigned long index)
-{
-    return (unsigned char *)vector->buffer + index * vector->item_size;
+    return lystore_realloc(&vector->store, new_len);
 }
 
 #endif /* LYDSS_VECTOR_ENABLED */

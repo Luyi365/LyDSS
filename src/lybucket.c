@@ -33,6 +33,8 @@
 
 #if LYDSS_BUCKET_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -196,9 +198,6 @@ LyBucketNode_t *lybucket_remove(LyBucket_t *bucket, const char *const name)
     LyBucketNode_t *cur = lybucket_get(bucket, name);
     if(cur != NULL) {
         lybucket_remove_node(bucket, cur);
-        // 断开与链表的连接
-        cur->prev = NULL;
-        cur->next = NULL;
     }
 
     return cur;
@@ -210,23 +209,7 @@ void lybucket_remove_node(LyBucket_t *bucket, LyBucketNode_t *node)
     LYDSS_ASSERT(bucket);
     LYDSS_ASSERT(node);
 
-    // 更新前驱节点的next指针
-    if(node->prev != NULL) {
-        node->prev->next = node->next;
-    }
-    else {
-        bucket->head_item = node->next;
-    }
-
-    // 更新后继节点的prev指针
-    if(node->next != NULL) {
-        node->next->prev = node->prev;
-    }
-    else {
-        bucket->tail_item = node->prev;
-    }
-
-    // 更新计数器
+    LYDLIST_UNLINK(bucket->head_item, bucket->tail_item, node);
     bucket->count--;
 }
 
@@ -295,21 +278,11 @@ LyBucketNode_t *lybucket_post(LyBucket_t *bucket, const char *const name, void *
         .next = NULL,
     };
 
-    if(bucket->count == 0) {
-        bucket->head_item = node;
-        bucket->tail_item = node;
+    if(at_head == true) {
+        LYDLIST_LINK_FRONT(bucket->head_item, bucket->tail_item, node);
     }
     else {
-        if(at_head == true) {
-            node->next = bucket->head_item;
-            bucket->head_item->prev = node;
-            bucket->head_item = node;
-        }
-        else {
-            node->prev = bucket->tail_item;
-            bucket->tail_item->next = node;
-            bucket->tail_item = node;
-        }
+        LYDLIST_LINK_REAR(bucket->head_item, bucket->tail_item, node);
     }
 
     bucket->count++;
@@ -348,26 +321,10 @@ LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void
         };
 
         if(at_before == true) {
-            if(cur->prev == NULL || cur == bucket->head_item) {
-                bucket->head_item = node;
-            }
-            else {
-                node->prev = cur->prev;
-                cur->prev->next = node;
-            }
-            node->next = cur;
-            cur->prev = node;
+            LYDLIST_LINK_BEFORE(bucket->head_item, cur, node);
         }
         else {
-            if(cur->next == NULL || cur == bucket->tail_item) {
-                bucket->tail_item = node;
-            }
-            else {
-                node->next = cur->next;
-                cur->next->prev = node;
-            }
-            node->prev = cur;
-            cur->next = node;
+            LYDLIST_LINK_AFTER(bucket->tail_item, cur, node);
         }
 
         bucket->count++;

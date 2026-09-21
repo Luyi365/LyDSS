@@ -14,6 +14,8 @@
 
 #if LYDSS_STREAM_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,7 +33,13 @@ LyStream_t *lystream_create(size_t size)
 {
     LYDSS_ASSERT(size);
 
-    LyStream_t *new_stream = calloc(1, sizeof(LyStream_t) + size * sizeof(cell_t));
+    size_t bytes = 0;
+    if(lystore_bytes(size, sizeof(cell_t), &bytes) == false
+        || bytes > SIZE_MAX - sizeof(LyStream_t)) {
+        return NULL;        // 字节数会溢出
+    }
+
+    LyStream_t *new_stream = calloc(1, sizeof(LyStream_t) + bytes);
     if(new_stream == NULL) {
         return NULL;
     }
@@ -75,7 +83,7 @@ size_t lystream_in(LyStream_t *stream, cell_t *data, size_t size)
 
     for(size_t i = 0; i < size; i++) {
         stream->buffer[stream->tail] = data[i];
-        stream->tail = (stream->tail + 1) % stream->size;
+        stream->tail = lyring_next(stream->tail, stream->size);
     }
     stream->count += size;
 
@@ -95,7 +103,7 @@ size_t lystream_out(LyStream_t *stream, cell_t *buf, size_t size)
 
     for(size_t i = 0; i < size; i++) {
         buf[i] = stream->buffer[stream->head];
-        stream->head = (stream->head + 1) % stream->size;
+        stream->head = lyring_next(stream->head, stream->size);
     }
     stream->count -= size;
 

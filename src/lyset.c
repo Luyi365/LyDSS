@@ -14,6 +14,8 @@
 
 #if LYDSS_SET_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -82,8 +84,7 @@ bool lyset_add(LySet_t *set, const void *elem)
     }
 
     memcpy(node->element, elem, set->elem_size);
-    node->next = set->elem_node[idx];
-    set->elem_node[idx] = node;
+    LYSLIST_LINK_HEAD(set->elem_node[idx], node);
     set->count++;
 
     return true;
@@ -103,7 +104,7 @@ bool lyset_remove(LySet_t *set, const void *elem)
     while(*pp_node != NULL) {
         if(set->equals((*pp_node)->element, elem)) {
             struct ElemNode *del = *pp_node;
-            *pp_node = del->next;
+            LYSLIST_UNLINK(pp_node, del);
             free(del->element);
             free(del);
             set->count--;
@@ -126,7 +127,7 @@ bool lyset_pop(LySet_t *set, void *out)
         if(set->elem_node[i] != NULL) {
             struct ElemNode *node = set->elem_node[i];
             memcpy(out, node->element, set->elem_size);
-            set->elem_node[i] = node->next;
+            LYSLIST_UNLINK(&set->elem_node[i], node);
             free(node->element);
             free(node);
             set->count--;

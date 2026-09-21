@@ -16,6 +16,8 @@
 
 #if LYDSS_ARRAY_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -23,13 +25,9 @@
 #include <stdbool.h>
 
 struct LyArray {
-    void *buffer;               ///< 成员区
-    unsigned long length;       ///< 成员区可容纳的成员数量
-    unsigned long item_size;    ///< 单个成员的大小（单位：字节）
+    LyStore_t store;              ///< 成员区描述（地址、长度、成员大小）
     bool is_static;             ///< 成员区是否由调用者提供
 };
-
-static void *array_locate_item(LyArray_t *array, unsigned long index);
 
 /// @brief 创建一个数组
 /// @note 成员区清零后交付
@@ -43,14 +41,11 @@ LyArray_t *lyarray_create(unsigned long len, unsigned long item_size)
         return NULL;
     }
 
-    array->buffer = calloc(len, item_size);
-    if(array->buffer == NULL) {
+    if(lystore_alloc(&array->store, len, item_size, true) == false) {
         free(array);
         return NULL;
     }
 
-    array->length = len;
-    array->item_size = item_size;
     array->is_static = false;
 
     return array;
@@ -65,9 +60,7 @@ void lyarray_create_static(LyArray_t *array, void *buf, unsigned long len, unsig
     LYDSS_ASSERT(len);
     LYDSS_ASSERT(item_size);
 
-    array->buffer = buf;
-    array->length = len;
-    array->item_size = item_size;
+    lystore_bind(&array->store, buf, len, item_size);
     array->is_static = true;
 }
 
@@ -77,11 +70,11 @@ bool lyarray_set(LyArray_t *array, unsigned long index, const void *item)
     LYDSS_ASSERT(array);
     LYDSS_ASSERT(item);
 
-    if(index >= array->length) {
+    if(index >= array->store.length) {
         return false;
     }
 
-    memcpy(array_locate_item(array, index), item, array->item_size);
+    memcpy(lystore_address(&array->store, index), item, array->store.item_size);
 
     return true;
 }
@@ -91,11 +84,11 @@ void *lyarray_get(LyArray_t *array, unsigned long index)
 {
     LYDSS_ASSERT(array);
 
-    if(index >= array->length) {
+    if(index >= array->store.length) {
         return NULL;
     }
 
-    return array_locate_item(array, index);
+    return lystore_address(&array->store, index);
 }
 
 /// @brief 读取指定下标的成员到缓冲区
@@ -104,11 +97,11 @@ bool lyarray_read(LyArray_t *array, unsigned long index, void *buf)
     LYDSS_ASSERT(array);
     LYDSS_ASSERT(buf);
 
-    if(index >= array->length) {
+    if(index >= array->store.length) {
         return false;
     }
 
-    memcpy(buf, array_locate_item(array, index), array->item_size);
+    memcpy(buf, lystore_address(&array->store, index), array->store.item_size);
 
     return true;
 }
@@ -120,12 +113,11 @@ void lyarray_delete(LyArray_t *array)
     LYDSS_ASSERT(array);
 
     if(array->is_static == true) {
-        array->buffer = NULL;
-        array->length = 0;
+        lystore_unbind(&array->store);
         return;
     }
 
-    free(array->buffer);
+    lystore_free(&array->store);
     free(array);
 }
 
@@ -134,7 +126,7 @@ unsigned long lyarray_length(LyArray_t *array)
 {
     LYDSS_ASSERT(array);
 
-    return array->length;
+    return array->store.length;
 }
 
 /// @brief 获取单个成员的大小
@@ -142,14 +134,7 @@ unsigned long lyarray_item_size(LyArray_t *array)
 {
     LYDSS_ASSERT(array);
 
-    return array->item_size;
-}
-
-/* --------------------------------- static --------------------------------- */
-/// @brief 计算指定下标成员的地址
-static void *array_locate_item(LyArray_t *array, unsigned long index)
-{
-    return (unsigned char *)array->buffer + index * array->item_size;
+    return array->store.item_size;
 }
 
 #endif /* LYDSS_ARRAY_ENABLED */

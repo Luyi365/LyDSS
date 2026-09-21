@@ -14,6 +14,8 @@
 
 #if LYDSS_LIST_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 
 /// @brief 创建链表
@@ -56,14 +58,7 @@ LyListNode_t *lylist_push_front(LyList_t *list, void *data)
     }
 
     new_node->data = data;
-    if(list->head == NULL) {
-        list->head = list->tail = new_node;
-    }
-    else {
-        new_node->next = list->head;
-        list->head->prev = new_node;
-        list->head = new_node;
-    }
+    LYDLIST_LINK_FRONT(list->head, list->tail, new_node);
 
     return new_node;
 }
@@ -79,14 +74,7 @@ LyListNode_t *lylist_push_rear(LyList_t *list, void *data)
     }
 
     new_node->data = data;
-    if(list->tail == NULL) {
-        list->head = list->tail = new_node;
-    }
-    else {
-        new_node->prev = list->tail;
-        list->tail->next = new_node;
-        list->tail = new_node;
-    }
+    LYDLIST_LINK_REAR(list->head, list->tail, new_node);
 
     return new_node;
 }
@@ -103,15 +91,7 @@ LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *dat
     }
 
     new_node->data = data;
-    new_node->next = node;
-    new_node->prev = node->prev;
-    if(node->prev != NULL) {
-        node->prev->next = new_node;
-    }
-    else {
-        list->head = new_node;
-    }
-    node->prev = new_node;
+    LYDLIST_LINK_BEFORE(list->head, node, new_node);
 
     return new_node;
 }
@@ -128,15 +108,7 @@ LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data
     }
 
     new_node->data = data;
-    new_node->prev = node;
-    new_node->next = node->next;
-    if(node->next != NULL) {
-        node->next->prev = new_node;
-    }
-    else {
-        list->tail = new_node;
-    }
-    node->next = new_node;
+    LYDLIST_LINK_AFTER(list->tail, node, new_node);
 
     return new_node;
 }
@@ -172,19 +144,8 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node)
     LYDSS_ASSERT(node);
 
     void *node_data = node->data;
-    if(node->prev != NULL) {
-        node->prev->next = node->next;
-    }
-    else {
-        list->head = node->next;
-    }
 
-    if(node->next != NULL) {
-        node->next->prev = node->prev;
-    }
-    else {
-        list->tail = node->prev;
-    }
+    LYDLIST_UNLINK(list->head, list->tail, node);
     free(node);
 
     return node_data;

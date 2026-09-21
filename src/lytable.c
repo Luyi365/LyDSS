@@ -14,6 +14,8 @@
 
 #if LYDSS_TABLE_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -93,8 +95,7 @@ int lytable_set(LyTable_t *table, const char *key, void *value)
 
     strcpy(new_node->key, key);
     new_node->value = value;
-    new_node->next = table->slots[idx];
-    table->slots[idx] = new_node;
+    LYSLIST_LINK_HEAD(table->slots[idx], new_node);
     table->size++;
 
     return 0;
@@ -127,16 +128,11 @@ void *lytable_remove(LyTable_t *table, const char *key)
     }
 
     size_t idx = table->hash(key) % table->capacity;
-    struct LyTableNode *prev = NULL;
-    struct LyTableNode *node = table->slots[idx];
-    while(node != NULL) {
+    struct LyTableNode **pp_node = &table->slots[idx];
+    while(*pp_node != NULL) {
+        struct LyTableNode *node = *pp_node;
         if(strcmp(node->key, key) == 0) {
-            if(prev != NULL) {
-                prev->next = node->next;
-            }
-            else {
-                table->slots[idx] = node->next;
-            }
+            LYSLIST_UNLINK(pp_node, node);
 
             void *value = node->value;
             free(node->key);
@@ -145,8 +141,7 @@ void *lytable_remove(LyTable_t *table, const char *key)
 
             return value;
         }
-        prev = node;
-        node = node->next;
+        pp_node = &node->next;
     }
 
     return NULL;
@@ -207,8 +202,7 @@ static int table_resize_slots(LyTable_t *table, size_t new_cap)
         while(node != NULL) {
             struct LyTableNode *next = node->next;
             size_t idx = table->hash(node->key) % new_cap;
-            node->next = new_slots[idx];
-            new_slots[idx] = node;
+            LYSLIST_LINK_HEAD(new_slots[idx], node);
             node = next;
         }
     }

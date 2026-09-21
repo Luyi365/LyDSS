@@ -14,6 +14,8 @@
 
 #if LYDSS_STACK_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -21,9 +23,7 @@
 #include <stdbool.h>
 
 struct LyStack {
-    void *buffer;               ///< 栈数据
-    unsigned long length;       ///< 栈可容纳的成员数量
-    unsigned long item_size;    ///< 单个成员的大小（单位：字节）
+    LyStore_t store;              ///< 栈数据描述（地址、容量、成员大小）
     unsigned long top;          ///< 栈顶索引（当前成员数量）
     bool is_static;             ///< 栈数据是否由调用者提供
 };
@@ -38,14 +38,11 @@ LyStack_t *lystack_create(unsigned long len, unsigned long item_size)
         return NULL;
     }
 
-    stack->buffer = calloc(len, item_size);
-    if(stack->buffer == NULL) {
+    if(lystore_alloc(&stack->store, len, item_size, true) == false) {
         free(stack);
         return NULL;
     }
 
-    stack->length = len;
-    stack->item_size = item_size;
     stack->top = 0;
     stack->is_static = false;
 
@@ -59,11 +56,9 @@ void lystack_create_static(LyStack_t *stack, void *buf, unsigned long len, unsig
     LYDSS_ASSERT(buf);
     LYDSS_ASSERT(item_size);
 
-    stack->length = len;
-    stack->item_size = item_size;
+    lystore_bind(&stack->store, buf, len, item_size);
     stack->top = 0;
     stack->is_static = true;
-    stack->buffer = buf;
 }
 
 /// @brief 数据入栈
@@ -72,10 +67,10 @@ bool lystack_push(LyStack_t *stack, void *item)
     LYDSS_ASSERT(stack);
     LYDSS_ASSERT(item);
 
-    if(stack->top >= stack->length) {
+    if(stack->top >= stack->store.length) {
         return false;
     }
-    memcpy((unsigned char *)stack->buffer + stack->top * stack->item_size, item, stack->item_size);
+    memcpy(lystore_address(&stack->store, stack->top), item, stack->store.item_size);
     stack->top++;
 
     return true;
@@ -91,7 +86,7 @@ bool lystack_pop(LyStack_t *stack, void *buf)
         return false;
     }
     stack->top--;
-    memcpy(buf, (unsigned char *)stack->buffer + stack->top * stack->item_size, stack->item_size);
+    memcpy(buf, lystore_address(&stack->store, stack->top), stack->store.item_size);
     return true;
 }
 
@@ -104,7 +99,7 @@ bool lystack_peek(LyStack_t *stack, void *buf)
     if(stack->top == 0) {
         return false;
     }
-    memcpy(buf, (unsigned char *)stack->buffer + (stack->top - 1) * stack->item_size, stack->item_size);
+    memcpy(buf, lystore_address(&stack->store, stack->top - 1), stack->store.item_size);
 
     return true;
 }
@@ -126,12 +121,12 @@ void lystack_delete(LyStack_t *stack)
     LYDSS_ASSERT(stack);
 
     if(stack->is_static == true) {
-        stack->buffer = NULL;
+        lystore_unbind(&stack->store);
         stack->top = 0;
         return;
     }
 
-    free(stack->buffer);
+    lystore_free(&stack->store);
     free(stack);
 }
 
@@ -155,7 +150,7 @@ bool lystack_is_full(LyStack_t *stack)
 {
     LYDSS_ASSERT(stack);
 
-    return stack->top >= stack->length;
+    return stack->top >= stack->store.length;
 }
 
 #endif /* LYDSS_STACK_ENABLED */

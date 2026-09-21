@@ -15,6 +15,8 @@
 
 #if LYDSS_QUEUE_ENABLED
 
+#include "../inc/lydss_priv.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -22,9 +24,7 @@
 #include <stdbool.h>
 
 struct LyQueue {
-    void *items;                    ///< 成员区
-    unsigned long length;           ///< 队列可容纳的成员数量
-    unsigned long item_size;        ///< 单个成员的大小（单位：字节）
+    LyStore_t store;                  ///< 成员区描述（地址、容量、成员大小）
     unsigned long en_index;         ///< 入队位置索引
     unsigned long de_index;         ///< 出队位置索引
     unsigned long count;            ///< 队列中成员的数量
@@ -41,14 +41,11 @@ LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size)
         return NULL;
     }
 
-    queue->items = calloc(len, item_size);
-    if(queue->items == NULL) {
+    if(lystore_alloc(&queue->store, len, item_size, true) == false) {
         free(queue);
         return NULL;
     }
 
-    queue->length = len;
-    queue->item_size = item_size;
     queue->en_index = 0;
     queue->de_index = 0;
     queue->count = 0;
@@ -64,13 +61,11 @@ void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsig
     LYDSS_ASSERT(buf);
     LYDSS_ASSERT(item_size);
 
-    queue->length = len;
-    queue->item_size = item_size;
+    lystore_bind(&queue->store, buf, len, item_size);
     queue->en_index = 0;
     queue->de_index = 0;
     queue->count = 0;
     queue->is_static = true;
-    queue->items = buf;
 }
 
 /// @brief 数据入队
@@ -79,12 +74,12 @@ bool lyqueue_send(LyQueue_t *queue, void *item)
     LYDSS_ASSERT(queue);
     LYDSS_ASSERT(item);
 
-    if(queue->count >= queue->length) {
+    if(queue->count >= queue->store.length) {
         return false;
     }
 
-    memcpy((unsigned char *)queue->items + queue->en_index * queue->item_size, item, queue->item_size);
-    queue->en_index = (queue->en_index + 1) % queue->length;
+    memcpy(lystore_address(&queue->store, queue->en_index), item, queue->store.item_size);
+    queue->en_index = lyring_next(queue->en_index, queue->store.length);
     queue->count++;
 
     return true;
@@ -100,8 +95,8 @@ bool lyqueue_receive(LyQueue_t *queue, void *buf)
         return false;
     }
 
-    memcpy(buf, (unsigned char *)queue->items + queue->de_index * queue->item_size, queue->item_size);
-    queue->de_index = (queue->de_index + 1) % queue->length;
+    memcpy(buf, lystore_address(&queue->store, queue->de_index), queue->store.item_size);
+    queue->de_index = lyring_next(queue->de_index, queue->store.length);
     queue->count--;
 
     return true;
@@ -117,7 +112,7 @@ bool lyqueue_peek(LyQueue_t *queue, void *buf)
         return false;
     }
 
-    memcpy(buf, (unsigned char *)queue->items + queue->de_index * queue->item_size, queue->item_size);
+    memcpy(buf, lystore_address(&queue->store, queue->de_index), queue->store.item_size);
 
     return true;
 }
@@ -141,14 +136,14 @@ void lyqueue_delete(LyQueue_t *queue)
     LYDSS_ASSERT(queue);
 
     if(queue->is_static == true) {
-        queue->items = NULL;
+        lystore_unbind(&queue->store);
         queue->en_index = 0;
         queue->de_index = 0;
         queue->count = 0;
         return;
     }
 
-    free(queue->items);
+    lystore_free(&queue->store);
     free(queue);
 }
 
@@ -173,7 +168,7 @@ bool lyqueue_is_full(LyQueue_t *queue)
 {
     LYDSS_ASSERT(queue);
 
-    return queue->count >= queue->length;
+    return queue->count >= queue->store.length;
 }
 
 #endif /* LYDSS_QUEUE_ENABLED */
