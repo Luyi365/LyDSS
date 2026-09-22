@@ -1,13 +1,12 @@
 /**
  * @file lylist.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 双向链表容器
  * @date 2026-08-14
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * Matters related to this document.
+ * @note destroy 只释放节点，不释放 data，也不释放 list 句柄本身（可能是栈分配的）。
  */
 
 #include "../inc/lydss_api.h"

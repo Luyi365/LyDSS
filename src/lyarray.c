@@ -1,15 +1,12 @@
 /**
  * @file lyarray.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 为 C 原生数组补齐运行时元数据的定长存储原语
  * @date 2026-09-03
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * 为 C 原生数组补齐运行时元数据（长度与成员大小）的定长存储原语。
- * 全部 length 个槽位自始存在，索引边界对 length 判定，不维护已用数量。
- * 「已用多少」属于上层容器的不变式，由 vector、queue、stack 各自表达。
+ * @note 全部 length 个槽位自始存在，不维护已用数量；不要添加 push/pop 等序列操作。
  */
 
 #include "../inc/lydss_api.h"
@@ -30,7 +27,6 @@ struct LyArray {
 };
 
 /// @brief 创建一个数组
-/// @note 成员区清零后交付
 LyArray_t *lyarray_create(unsigned long len, unsigned long item_size)
 {
     LYDSS_ASSERT(len);
@@ -51,8 +47,7 @@ LyArray_t *lyarray_create(unsigned long len, unsigned long item_size)
     return array;
 }
 
-/// @brief 创建一个静态数组
-/// @note 不改动 buf 的既有内容，槽位初值由调用者负责
+/// @brief 创建一个静态数组，不清零 buf
 void lyarray_create_static(LyArray_t *array, void *buf, unsigned long len, unsigned long item_size)
 {
     LYDSS_ASSERT(array);
@@ -107,7 +102,6 @@ bool lyarray_read(LyArray_t *array, unsigned long index, void *buf)
 }
 
 /// @brief 删除数组
-/// @note 静态数组只解除成员区绑定，不释放调用者提供的内存与句柄
 void lyarray_delete(LyArray_t *array)
 {
     LYDSS_ASSERT(array);

@@ -1,13 +1,10 @@
 /**
  * @file set_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 集合用例
  * @date 2026-08-10
  *
  * @copyright Copyright (c) 2026
- *
- * @note
- * Matters related to this document.
  */
 
 #include "../inc/lydss_api.h"
@@ -17,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-/* ---------- 哈希函数（FNV-1a） ---------- */
+/// @brief 供集合使用的 FNV-1a 哈希
 static unsigned fnv1a(const void *data, size_t len)
 {
     const unsigned char *p = data;
@@ -29,10 +26,10 @@ static unsigned fnv1a(const void *data, size_t len)
     return h;
 }
 
-/* ---------- 默认相等比较（按字节） ---------- */
+/// @brief 按字节比较相等，长度写死 sizeof(int)，仅适用于 int 元素
 static bool byte_equals(const void *a, const void *b)
 {
-    return memcmp(a, b, sizeof(int)) == 0; /* 示例按 int 比较 */
+    return memcmp(a, b, sizeof(int)) == 0;
 }
 
 int set_basic()

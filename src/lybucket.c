@@ -82,11 +82,9 @@ LyBucketNode_t *lybucket_put(LyBucket_t *bucket, const char *const name, void *i
     LyBucketNode_t *cur = lybucket_get(bucket, name);
 
     if(cur == NULL) {
-        // 添加新项
         cur = lybucket_post(bucket, name, item, meta, 0);
     }
     else {
-        // 更新现有项
         if(cur->meta.data != NULL) {
             free(cur->meta.data);
         }
@@ -118,6 +116,7 @@ LyBucketNode_t *lybucket_head(LyBucket_t *bucket, bool at_tail)
 }
 
 /// @brief 获取桶中的节点
+/// @note 缺陷：循环受 uint8_t 的 count 约束，超过 255 项后找不到条目（链表本以 NULL 结尾）
 LyBucketNode_t *lybucket_get(LyBucket_t *bucket, const char *const name)
 {
     LYDSS_ASSERT(bucket);
@@ -126,7 +125,7 @@ LyBucketNode_t *lybucket_get(LyBucket_t *bucket, const char *const name)
     LyBucketNode_t *cur = bucket->head_item;
     for(uint32_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
         if(cur->name != NULL && strcmp(cur->name, name) == 0) {
-            return cur; // 找到匹配项
+            return cur;
         }
     }
 
@@ -166,6 +165,7 @@ bool lybucket_patch_item(LyBucket_t *bucket, const char *const name, void *item)
 }
 
 /// @brief 修改桶中的元数据
+/// @note 缺陷：先释放旧 meta.data 再分配新副本，分配失败则旧元数据已丢失
 bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMeta_t meta)
 {
     LYDSS_ASSERT(bucket);
@@ -189,7 +189,8 @@ bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMet
     return false;
 }
 
-/// @brief 从桶中移除项但不释放（返回被移除的项）
+/// @brief 从桶中移除项但不释放，仅用于把节点重新链入别处
+/// @note 本库无释放该节点的接口，要摘下并销毁请用 lybucket_erase
 LyBucketNode_t *lybucket_remove(LyBucket_t *bucket, const char *const name)
 {
     LYDSS_ASSERT(bucket);
@@ -335,7 +336,8 @@ LyBucketNode_t *lybucket_insert(LyBucket_t *bucket, const char *const name, void
 }
 
 /* --------------------------------- static --------------------------------- */
-/// @brief 分配内存并复制内容（返回新分配的内存指针）
+/// @brief 分配内存并复制内容
+/// @note 缺陷：断言 size 非零，但 meta.size 为 0 是合法输入（应视作无元数据），会被误当错误
 static void *bucket_dup_memory(const void *src, size_t size)
 {
     LYDSS_ASSERT(src);

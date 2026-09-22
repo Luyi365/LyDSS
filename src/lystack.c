@@ -1,13 +1,10 @@
 /**
  * @file lystack.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 定长栈
  * @date 2026-08-18
  *
  * @copyright Copyright (c) 2026
- *
- * @note
- * Matters related to this document.
  */
 
 #include "../inc/lydss_api.h"
@@ -115,7 +112,6 @@ bool lystack_clear(LyStack_t *stack)
 }
 
 /// @brief 删除栈
-/// @note 静态栈只解除栈数据绑定，不释放调用者提供的内存与句柄
 void lystack_delete(LyStack_t *stack)
 {
     LYDSS_ASSERT(stack);

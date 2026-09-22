@@ -1,13 +1,10 @@
 /**
  * @file array_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 数组用例
  * @date 2026-09-03
  *
  * @copyright Copyright (c) 2026
- *
- * @note
- * Matters related to this document.
  */
 
 #include "../inc/lydss_api.h"

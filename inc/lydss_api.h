@@ -7,7 +7,9 @@
  * @copyright Copyright (c) 2026
  *
  * @note
- * Matters related to this document.
+ * 十个容器的公开声明，分节顺序为：池、数组、动态数组、栈、队列、链表、流、表、集合、桶。
+ * 每节都由 lydss_cfg.h 里对应的 LYDSS_<名称>_ENABLED 包裹，容器被裁剪后该节不参与编译。
+ * 新增容器时按抽象层级插入到对应位置，不要追加到末尾。
  */
 
 #ifndef LYDSS_API_H
@@ -52,7 +54,7 @@ typedef struct LyPoolItem LyPoolItem_t;
  * @brief 创建一个池
  *
  * @param size 池容量
- * @return LyPool_t
+ * @return 池句柄，内存不足时返回 NULL
  */
 LyPool_t *lypool_create(size_t size);
 
@@ -62,6 +64,10 @@ LyPool_t *lypool_create(size_t size);
  * @param pool 池
  * @param items 对象数组
  * @param size 数组大小
+ *
+ * @note 实现存在于 src/lypool.c，但声明暂不开放：LyPool_t 与 LyPoolItem_t 都是
+ *       不完整类型，库外既无法定义池实例也无法定义对象数组，声明出来也调不到。
+ *       开放它需要先决定如何暴露句柄尺寸，该决定影响全部支持静态构造的容器。
  */
 // void lypool_create_static(LyPool_t *pool, LyPoolItem_t *items, size_t size);
 
@@ -117,7 +123,7 @@ typedef struct LyArray LyArray_t;
  *
  * @param len 数组长度
  * @param item_size 单个成员大小
- * @return LyArray_t
+ * @return 数组句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
  *
  * @note 成员区清零后交付
  */
@@ -193,12 +199,12 @@ unsigned long lyarray_item_size(LyArray_t *array);
 
 #endif /* LYDSS_ARRAY_ENABLED */
 
-/* ---------------------------------- 变长数组 ---------------------------------- */
+/* ---------------------------------- 动态数组 ---------------------------------- */
 #if LYDSS_VECTOR_ENABLED
 
 /**
  * @note
- * 自持成员区的变长数组。size 为已用数量，capacity 为成员区可容纳的数量，
+ * 自持成员区的动态数组。size 为已用数量，capacity 为成员区可容纳的数量，
  * 容量不足时按倍数增长，使单次追加的摊还代价为 O(1)。
  * 空闲容量不做初始化，索引边界对 size 判定，空闲槽位对外不可见。
  * 重分配可能迁移成员区，此前由 lyvector_get 取得的地址随之失效。
@@ -207,18 +213,18 @@ unsigned long lyarray_item_size(LyArray_t *array);
 typedef struct LyVector LyVector_t;
 
 /**
- * @brief 创建一个变长数组
+ * @brief 创建一个动态数组
  *
  * @param len 初始容量
  * @param item_size 单个成员大小
- * @return LyVector_t
+ * @return 动态数组句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
  */
 LyVector_t *lyvector_create(unsigned long len, unsigned long item_size);
 
 /**
  * @brief 预留容量
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @param len 期望容量
  * @return true 预留成功，false 内存不足
  *
@@ -229,7 +235,7 @@ bool lyvector_reserve(LyVector_t *vector, unsigned long len);
 /**
  * @brief 在尾部追加成员
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @param item 数据项
  * @return true 追加成功，false 内存不足
  *
@@ -240,7 +246,7 @@ bool lyvector_push_rear(LyVector_t *vector, const void *item);
 /**
  * @brief 写入指定下标的成员
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @param index 下标
  * @param item 数据项
  * @return true 写入成功，false 下标越界
@@ -252,7 +258,7 @@ bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item);
 /**
  * @brief 获取指定下标成员的地址
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @param index 下标
  * @return void* 成员地址，下标越界返回 NULL
  *
@@ -263,7 +269,7 @@ void *lyvector_get(LyVector_t *vector, unsigned long index);
 /**
  * @brief 读取指定下标的成员到缓冲区
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @param index 下标
  * @param buf 缓冲区
  * @return true 读取成功，false 下标越界
@@ -273,7 +279,7 @@ bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf);
 /**
  * @brief 取出尾部的成员
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @param buf 缓冲区，为 NULL 时丢弃取出的成员
  * @return true 取出成功，false 为空
  *
@@ -284,7 +290,7 @@ bool lyvector_pop_rear(LyVector_t *vector, void *buf);
 /**
  * @brief 清空成员
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @return true 清空成功
  *
  * @note 只把 size 归零，容量保持不变
@@ -294,7 +300,7 @@ bool lyvector_clear(LyVector_t *vector);
 /**
  * @brief 将容量收缩到当前成员数量
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @return true 收缩成功，false 内存不足
  *
  * @note 空 vector 保留一个槽位，避免出现零长度的底层存储
@@ -302,16 +308,16 @@ bool lyvector_clear(LyVector_t *vector);
 bool lyvector_shrink(LyVector_t *vector);
 
 /**
- * @brief 删除变长数组
+ * @brief 删除动态数组
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  */
 void lyvector_delete(LyVector_t *vector);
 
 /**
  * @brief 获取当前成员数量
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @return 成员数量
  */
 unsigned long lyvector_size(LyVector_t *vector);
@@ -319,7 +325,7 @@ unsigned long lyvector_size(LyVector_t *vector);
 /**
  * @brief 获取当前容量
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @return 容量
  */
 unsigned long lyvector_capacity(LyVector_t *vector);
@@ -327,7 +333,7 @@ unsigned long lyvector_capacity(LyVector_t *vector);
 /**
  * @brief 判断是否为空
  *
- * @param vector 变长数组
+ * @param vector 动态数组
  * @return true 为空，false 不为空
  */
 bool lyvector_is_empty(LyVector_t *vector);
@@ -342,9 +348,9 @@ typedef struct LyStack LyStack_t;
 /**
  * @brief 创建一个栈
  *
- * @param len 栈长度
+ * @param len 栈长度，未校验；传 0 会构造成功但栈永久同时为空且为满
  * @param item_size 单个成员大小
- * @return LyStack_t
+ * @return 栈句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
  */
 LyStack_t *lystack_create(unsigned long len, unsigned long item_size);
 
@@ -363,7 +369,7 @@ void lystack_create_static(LyStack_t *stack, void *buf, unsigned long len, unsig
  *
  * @param stack 栈
  * @param item 数据项
- * @return true 入栈成功，false 入栈失败
+ * @return true 入栈成功，false 栈已满
  */
 bool lystack_push(LyStack_t *stack, void *item);
 
@@ -372,7 +378,7 @@ bool lystack_push(LyStack_t *stack, void *item);
  *
  * @param stack 栈
  * @param buf 缓冲区
- * @return true 出栈成功，false 出栈失败
+ * @return true 出栈成功，false 栈为空
  */
 bool lystack_pop(LyStack_t *stack, void *buf);
 
@@ -381,7 +387,7 @@ bool lystack_pop(LyStack_t *stack, void *buf);
  *
  * @param stack 栈
  * @param buf 缓冲区
- * @return true 预读成功，false 预读失败
+ * @return true 预读成功，false 栈为空
  */
 bool lystack_peek(LyStack_t *stack, void *buf);
 
@@ -389,7 +395,7 @@ bool lystack_peek(LyStack_t *stack, void *buf);
  * @brief 清空栈
  *
  * @param stack 栈
- * @return true 清空成功，false 清空失败
+ * @return 恒为 true
  */
 bool lystack_clear(LyStack_t *stack);
 
@@ -436,9 +442,9 @@ typedef struct LyQueue LyQueue_t;
 /**
  * @brief 创建一个队列
  *
- * @param len 队列长度
+ * @param len 队列长度，未校验；传 0 会构造成功但队列永久同时为空且为满
  * @param item_size 单个成员大小
- * @return LyQueue_t
+ * @return 队列句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
  */
 LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size);
 
@@ -457,7 +463,7 @@ void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsig
  *
  * @param queue 队列
  * @param item 数据项
- * @return true 入队成功，false 入队失败
+ * @return true 入队成功，false 队列已满
  */
 bool lyqueue_send(LyQueue_t *queue, void *item);
 
@@ -466,7 +472,7 @@ bool lyqueue_send(LyQueue_t *queue, void *item);
  *
  * @param queue 队列
  * @param buf 缓冲区
- * @return true 出队成功，false 出队失败
+ * @return true 出队成功，false 队列为空
  */
 bool lyqueue_receive(LyQueue_t *queue, void *buf);
 
@@ -475,7 +481,7 @@ bool lyqueue_receive(LyQueue_t *queue, void *buf);
  *
  * @param queue 队列
  * @param buf 缓冲区
- * @return true 预读成功，false 预读失败
+ * @return true 预读成功，false 队列为空
  */
 bool lyqueue_peek(LyQueue_t *queue, void *buf);
 
@@ -483,7 +489,7 @@ bool lyqueue_peek(LyQueue_t *queue, void *buf);
  * @brief 清空队列
  *
  * @param queue 队列
- * @return true 清空成功，false 清空失败
+ * @return 恒为 true
  */
 bool lyqueue_clear(LyQueue_t *queue);
 
@@ -540,7 +546,7 @@ typedef struct LyList LyList_t;
 /**
  * @brief 创建链表
  *
- * @return LyList_t 链表
+ * @return 链表句柄，内存不足时返回 NULL
  */
 LyList_t *lylist_create(void);
 
@@ -557,8 +563,8 @@ void lylist_destroy(LyList_t *list);
  * @brief 链表头部插入
  *
  * @param list 链表
- * @param data 数据
- * @return LyListNode_t 生成节点
+ * @param data 数据，不校验是否为 NULL
+ * @return 生成的节点，内存不足时返回 NULL
  */
 LyListNode_t *lylist_push_front(LyList_t *list, void *data);
 
@@ -566,8 +572,8 @@ LyListNode_t *lylist_push_front(LyList_t *list, void *data);
  * @brief 链表尾部插入
  *
  * @param list 链表
- * @param data 数据
- * @return LyListNode_t 生成节点
+ * @param data 数据，不校验是否为 NULL
+ * @return 生成的节点，内存不足时返回 NULL
  */
 LyListNode_t *lylist_push_rear(LyList_t *list, void *data);
 
@@ -575,9 +581,9 @@ LyListNode_t *lylist_push_rear(LyList_t *list, void *data);
  * @brief 在节点前插入
  *
  * @param list 链表
- * @param node 目标节点
- * @param data 数据
- * @return LyListNode_t 生成节点
+ * @param node 目标节点，必须已属于 list
+ * @param data 数据，不校验是否为 NULL
+ * @return 生成的节点，内存不足时返回 NULL
  */
 LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *data);
 
@@ -585,9 +591,9 @@ LyListNode_t *lylist_insert_before(LyList_t *list, LyListNode_t *node, void *dat
  * @brief 在节点后插入
  *
  * @param list 链表
- * @param node 目标节点
- * @param data 数据
- * @return LyListNode_t 生成节点
+ * @param node 目标节点，必须已属于 list
+ * @param data 数据，不校验是否为 NULL
+ * @return 生成的节点，内存不足时返回 NULL
  */
 LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data);
 
@@ -595,7 +601,9 @@ LyListNode_t *lylist_insert_after(LyList_t *list, LyListNode_t *node, void *data
  * @brief 弹出链表头部节点
  *
  * @param list 链表
- * @return void* 数据
+ * @return 节点携带的 data；链表为空时返回 NULL
+ *
+ * @note 若存入的 data 本身是 NULL，返回值无法与「链表为空」区分。
  */
 void *lylist_pop_front(LyList_t *list);
 
@@ -603,7 +611,9 @@ void *lylist_pop_front(LyList_t *list);
  * @brief 弹出链表尾部节点
  *
  * @param list 链表
- * @return void* 数据
+ * @return 节点携带的 data；链表为空时返回 NULL
+ *
+ * @note 若存入的 data 本身是 NULL，返回值无法与「链表为空」区分。
  */
 void *lylist_pop_rear(LyList_t *list);
 
@@ -611,8 +621,10 @@ void *lylist_pop_rear(LyList_t *list);
  * @brief 移除节点
  *
  * @param list 链表
- * @param node 节点
- * @return void* 数据
+ * @param node 节点，必须属于 list
+ * @return 节点携带的 data
+ *
+ * @note 节点随本调用一并释放，调用后不得再使用 node。
  */
 void *lylist_remove(LyList_t *list, LyListNode_t *node);
 
@@ -624,6 +636,13 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node);
  */
 void lylist_swap(LyListNode_t *a, LyListNode_t *b);
 
+/**
+ * @brief 从头到尾遍历链表，node 为循环内可用的节点变量
+ *
+ * @note 循环体内**不得**删除当前节点：宏在执行完循环体后才读取 node->next，
+ *       而 lylist_remove 已经释放了该节点，属于未定义行为。
+ *       需要边遍历边删除时，请自行先缓存后继指针再删。
+ */
 #define LYLIST_FOREACH(list, node) \
     for(LyListNode_t *node = (list)->head; node; node = node->next)
 
@@ -638,7 +657,8 @@ typedef struct LyStream LyStream_t;
 /**
  * @brief 创建流
  *
- * @return LyStream_t
+ * @param size 缓冲区可容纳的单元数，单元为 cell_t
+ * @return 流句柄，size 换算字节数溢出或内存不足时返回 NULL
  */
 LyStream_t *lystream_create(size_t size);
 
@@ -708,7 +728,7 @@ typedef size_t (*LyTableHash_t)(const char *key);
  * @brief 创建表
  *
  * @param hash 哈希函数，传 NULL 则使用默认实现
- * @return LyTable_t 表
+ * @return 表句柄，内存不足时返回 NULL
  */
 LyTable_t *lytable_create(LyTableHash_t hash);
 
@@ -718,7 +738,7 @@ LyTable_t *lytable_create(LyTableHash_t hash);
  * @param table 表
  * @param key 键
  * @param value 值
- * @return 0 成功，-1 内存不足
+ * @return 0 成功，-1 内存不足或 table/key 为 NULL
  */
 int lytable_set(LyTable_t *table, const char *key, void *value);
 
@@ -727,7 +747,7 @@ int lytable_set(LyTable_t *table, const char *key, void *value);
  *
  * @param table 表
  * @param key 键
- * @return 找到返回 value，否则返回 NULL
+ * @return 找到返回 value；未找到、或 table/key 为 NULL 时返回 NULL
  */
 void *lytable_get(LyTable_t *table, const char *key);
 
@@ -736,7 +756,7 @@ void *lytable_get(LyTable_t *table, const char *key);
  *
  * @param table 表
  * @param key 键
- * @return 被删除的 value（找不到返回 NULL）
+ * @return 被删除的 value；未找到、或 table/key 为 NULL 时返回 NULL
  */
 void *lytable_remove(LyTable_t *table, const char *key);
 
@@ -778,11 +798,14 @@ typedef bool (Equals_t)(const void *a, const void *b);
 /**
  * @brief 初始化一个集合
  *
- * @param size 集合容量
+ * @param size 槽位数量，不是元素数量上限；元素数远超它时会退化成长链表
  * @param elem_size 元素大小
- * @param hash 哈希函数
- * @param equals 比较函数
- * @return LySet_t
+ * @param hash 哈希函数，不可为 NULL
+ * @param equals 比较函数，不可为 NULL
+ * @return 集合句柄，内存不足时返回 NULL
+ *
+ * @note size 传 0 会构造成功，但随后任何增删查都会对 0 取模，属于未定义行为。
+ *       集合不会 rehash，因此槽位数要在这里按预估规模一次给足。
  */
 LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equals);
 
@@ -791,7 +814,7 @@ LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equal
  *
  * @param set 集合
  * @param elem 元素
- * @return true 添加成功，false 已存在
+ * @return true 添加成功；false 有三种原因不可区分：元素已存在、elem 为 NULL、内存不足
  */
 bool lyset_add(LySet_t *set, const void *elem);
 
@@ -800,7 +823,7 @@ bool lyset_add(LySet_t *set, const void *elem);
  *
  * @param set 集合
  * @param elem 元素
- * @return true 移除成功，false 不存在
+ * @return true 移除成功，false 元素不存在或 elem 为 NULL
  */
 bool lyset_remove(LySet_t *set, const void *elem);
 
@@ -840,7 +863,7 @@ size_t lyset_count(const LySet_t *set);
  *
  * @param set 集合
  * @param elem 元素
- * @return true 包含，false 不包含
+ * @return true 包含，false 不包含或 elem 为 NULL
  */
 bool lyset_contains(const LySet_t *set, const void *elem);
 
@@ -849,7 +872,7 @@ bool lyset_contains(const LySet_t *set, const void *elem);
  *
  * @param self 集合
  * @param other 集合
- * @return LySetRelation_t
+ * @return 两集合的关系，取 LySetRelation_t 的五种取值之一
  */
 LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other);
 
@@ -879,7 +902,7 @@ typedef struct LyBucket LyBucket_t;
 /**
  * @brief 创建一个桶
  *
- * @return LyBucket_t* 桶指针
+ * @return 桶句柄，内存不足时返回 NULL
  */
 LyBucket_t *lybucket_create(void);
 
@@ -890,7 +913,7 @@ LyBucket_t *lybucket_create(void);
  * @param name 索引名
  * @param item 项
  * @param meta 元数据
- * @return LyBucketNode_t* 生成的节点指针
+ * @return 生成或被更新的节点，内存不足时返回 NULL
  *
  * @note 有同名则替换，无同名则增加
  */
@@ -901,7 +924,7 @@ LyBucketNode_t *lybucket_put(LyBucket_t *bucket, const char *const name, void *i
  *
  * @param bucket 桶
  * @param at_tail 是否从尾部节点检索（默认从头部检索）
- * @return LyBucketNode_t* 节点指针
+ * @return 头部或尾部节点，桶为空时返回 NULL
  */
 LyBucketNode_t *lybucket_head(LyBucket_t *bucket, bool at_tail);
 
@@ -910,7 +933,10 @@ LyBucketNode_t *lybucket_head(LyBucket_t *bucket, bool at_tail);
  *
  * @param bucket 桶
  * @param name 索引名
- * @return LyBucketNode_t* 节点指针
+ * @return 匹配的节点，未找到返回 NULL
+ *
+ * @note 检索沿链表逐个 strcmp，代价 O(n)。另外遍历受 count 限制，而 count 是
+ *       uint8_t，桶内超过 255 项后本函数会找不到条目。
  */
 LyBucketNode_t *lybucket_get(LyBucket_t *bucket, const char *const name);
 
@@ -949,7 +975,10 @@ bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMet
  *
  * @param bucket 桶
  * @param name 索引名
- * @return LyBucketNode_t* 被移除的项
+ * @return 被摘链但未释放的节点，未找到返回 NULL
+ *
+ * @note 本库没有提供释放该节点的接口，取回后无法归还内存。
+ *       只有在需要把节点重新链入别处时才用它；要摘下并销毁请用 lybucket_erase。
  */
 LyBucketNode_t *lybucket_remove(LyBucket_t *bucket, const char *const name);
 
@@ -989,7 +1018,7 @@ void lybucket_delete(LyBucket_t *bucket);
  * @param item 项
  * @param meta 元数据
  * @param at_head 是否从头部节点写入（默认尾部写入）
- * @return LyBucketNode_t* 生成的节点指针
+ * @return 生成的节点，内存不足时返回 NULL
  *
  * @note 可能造成索引名重复，不推荐用户直接使用该函数
  */
@@ -1004,7 +1033,7 @@ LyBucketNode_t *lybucket_post(LyBucket_t *bucket, const char *const name, void *
  * @param meta 元数据
  * @param at_name 定位索引名
  * @param at_before 是否在定位名之前写入（默认在之后写入）
- * @return LyBucketNode_t* 生成的节点指针
+ * @return 生成的节点，内存不足时返回 NULL
  *
  * @note 可能造成索引名重复，不推荐用户直接使用该函数
  */

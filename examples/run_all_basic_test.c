@@ -6,9 +6,7 @@
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * 各容器的调用顺序与 lydss_api.h 的分节顺序一致。
- * 每个调用都由对应的功能开关保护，被裁剪的容器连同它的测试一起跳过。
+ * @note 每个调用由对应功能开关保护，裁剪掉的容器连同其测试一起跳过。
  */
 
 #include "../inc/lydss_cfg.h"
@@ -41,19 +39,7 @@ int main()
     printf("\n");
 #endif
 
-    /** ./test/stack_basic.c */
-// #if LYDSS_STACK_ENABLED
-//     extern int stack_basic();
-//     status |= stack_basic();
-//     printf("\n");
-// #endif
-
-    /** ./test/queue_basic.c */
-// #if LYDSS_QUEUE_ENABLED
-//     extern int queue_basic();
-//     status |= queue_basic();
-//     printf("\n");
-// #endif
+    /* 栈、队列的用例尚未接入（queue_basic 针对旧 API，需重写）；接入时记得加开关保护 */
 
 #if LYDSS_STREAM_ENABLED
     /** ./test/stream_basic.c */

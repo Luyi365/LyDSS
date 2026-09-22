@@ -1,13 +1,12 @@
 /**
  * @file lyqueue.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 定长环形队列
  * @date 2026-08-07
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * Matters related to this document.
+ * @note send/receive 是全有或全无，与流的部分传输刻意不同。
  */
 
 
@@ -130,7 +129,6 @@ bool lyqueue_clear(LyQueue_t *queue)
 }
 
 /// @brief 删除队列
-/// @note 静态队列只解除成员区绑定，不释放调用者提供的内存与句柄
 void lyqueue_delete(LyQueue_t *queue)
 {
     LYDSS_ASSERT(queue);

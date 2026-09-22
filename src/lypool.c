@@ -119,7 +119,8 @@ void lypool_post(LyPool_t *pool, const char *const name, void *obj)
             return;
         }
     }
-    // TODO: 满时，需要处理
+
+    /* 缺陷：池满时对象被静默丢弃，返回 void 使调用者无从察觉 */
 }
 
 /// @brief 获取池中的指定对象
@@ -134,12 +135,12 @@ void *lypool_get(LyPool_t *pool, const char *const name)
             return pool->items[i].object;
         }
     }
-    // TODO: 找不到？
 
     return NULL;
 }
 
-/// @brief 清除池中的指定对象
+/// @brief 清除池中的指定对象，同名槽位会被全部清掉
+/// @note post 不查重、get 只取第一个、本函数清全部，三者对重名的处理不一致。
 void lypool_clear(LyPool_t *pool, const char *const name)
 {
     LYDSS_ASSERT(pool);
@@ -152,11 +153,9 @@ void lypool_clear(LyPool_t *pool, const char *const name)
             pool->items[i].object = NULL;
         }
     }
-    // TODO: 找不到？
 }
 
 /// @brief 销毁指定的池
-/// @note 静态池只解除对象数组绑定，不释放调用者提供的内存与句柄
 void lypool_delete(LyPool_t *pool)
 {
     LYDSS_ASSERT(pool);

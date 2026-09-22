@@ -6,9 +6,7 @@
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * simple() 使用栈，因此调用点由 LYDSS_STACK_ENABLED 保护，
- * 与 test/simple.c 的门控必须成对出现，否则栈被裁剪后会链接失败。
+ * @note simple() 用栈，调用点的开关须与 test/simple.c 的门控成对出现。
  */
 
 #include "../inc/lydss_cfg.h"

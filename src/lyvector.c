@@ -1,21 +1,12 @@
 /**
  * @file lyvector.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 自持成员区的动态数组
  * @date 2026-09-03
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * 自持成员区的变长数组。size 为已用数量，capacity 为成员区可容纳的数量，
- * 两者分离是变长的前提：容量按倍数预支，已用数量随追加逐个增长。
- *
- * 容量不足时按 LYVECTOR_GROWTH_FACTOR 倍增而非按需加一，
- * 使连续 n 次追加的搬移总代价为 O(n)，单次追加的摊还代价为 O(1)。
- *
- * 空闲容量不做初始化，因索引边界对 size 判定，空闲槽位对外不可见。
- * 重分配可能迁移成员区，此前由 lyvector_get 取得的地址随之失效。
- * 因增长依赖重分配，不提供静态构造。
+ * @note 容量按倍增而非按需加一，使追加摊还 O(1)。增长依赖 realloc，故不提供静态构造。
  */
 
 #include "../inc/lydss_api.h"
@@ -41,7 +32,7 @@ struct LyVector {
 static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need);
 static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len);
 
-/// @brief 创建一个变长数组
+/// @brief 创建一个动态数组
 LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
 {
     LYDSS_ASSERT(len);
@@ -62,8 +53,7 @@ LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
     return vector;
 }
 
-/// @brief 预留容量
-/// @note 只增不减；预留足够后的追加不会再触发重分配
+/// @brief 预留容量，只增不减
 bool lyvector_reserve(LyVector_t *vector, unsigned long len)
 {
     LYDSS_ASSERT(vector);
@@ -76,7 +66,7 @@ bool lyvector_reserve(LyVector_t *vector, unsigned long len)
 }
 
 /// @brief 在尾部追加成员
-/// @note 容量不足时触发重分配，此前取得的成员地址随之失效
+/// @note 可能触发重分配，之前 lyvector_get 取得的地址随之失效
 bool lyvector_push_rear(LyVector_t *vector, const void *item)
 {
     LYDSS_ASSERT(vector);
@@ -92,8 +82,7 @@ bool lyvector_push_rear(LyVector_t *vector, const void *item)
     return true;
 }
 
-/// @brief 写入指定下标的成员
-/// @note 边界对 size 判定，不能越过尾部写进空闲容量
+/// @brief 写入指定下标的成员，边界对 size 判定，不能写进空闲容量
 bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item)
 {
     LYDSS_ASSERT(vector);
@@ -136,8 +125,7 @@ bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf)
     return true;
 }
 
-/// @brief 取出尾部的成员
-/// @note 只减少 size，不收缩容量；释放容量需显式调用 lyvector_shrink
+/// @brief 取出尾部的成员，不收缩容量
 bool lyvector_pop_rear(LyVector_t *vector, void *buf)
 {
     LYDSS_ASSERT(vector);
@@ -154,8 +142,7 @@ bool lyvector_pop_rear(LyVector_t *vector, void *buf)
     return true;
 }
 
-/// @brief 清空成员
-/// @note 只把 size 归零，容量保持不变
+/// @brief 清空成员，容量保持不变
 bool lyvector_clear(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
@@ -165,8 +152,7 @@ bool lyvector_clear(LyVector_t *vector)
     return true;
 }
 
-/// @brief 将容量收缩到当前成员数量
-/// @note 空 vector 保留一个槽位，避免出现零长度的成员区
+/// @brief 将容量收缩到当前成员数量，空 vector 保留一个槽位
 bool lyvector_shrink(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
@@ -179,7 +165,7 @@ bool lyvector_shrink(LyVector_t *vector)
     return vector_resize_buffer(vector, new_len);
 }
 
-/// @brief 删除变长数组
+/// @brief 删除动态数组
 void lyvector_delete(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
@@ -233,7 +219,6 @@ static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need)
 }
 
 /// @brief 重新分配成员区
-/// @note 分配失败时原成员区与容量保持不变
 static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len)
 {
     LYDSS_ASSERT(new_len >= vector->size);

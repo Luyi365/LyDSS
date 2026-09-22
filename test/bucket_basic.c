@@ -1,18 +1,13 @@
 /**
  * @file bucket_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief 
+ * @brief
  * @date 2026-08-11
- * 
+ *
  * @copyright Copyright (c) 2026
- * 
- * @note 
- * Matters related to this document.
  */
 
 int bucket_basic()
 {
-
-
     return 0;
 }

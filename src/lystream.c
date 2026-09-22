@@ -1,13 +1,12 @@
 /**
  * @file lystream.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 定长环形字节流
  * @date 2026-08-14
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * Matters related to this document.
+ * @note in/out 返回实际传输的单元数，可能少于请求量，调用者须按返回值推进。
  */
 
 #include "../inc/lydss_api.h"
@@ -69,8 +68,7 @@ void lystream_create_static(LyStream_t *stream, void *buf, size_t size)
     stream->buffer = buf;
 }
 
-/// @brief 数据流入
-/// @note 这里的size是以cell_t为单位的；缓冲区剩余空间不足时只写入能容纳的部分
+/// @brief 数据流入，返回实际写入的单元数
 size_t lystream_in(LyStream_t *stream, cell_t *data, size_t size)
 {
     LYDSS_ASSERT(stream);
@@ -90,8 +88,7 @@ size_t lystream_in(LyStream_t *stream, cell_t *data, size_t size)
     return size;
 }
 
-/// @brief 数据流出
-/// @note 流中数据不足时只读出已有的部分
+/// @brief 数据流出，返回实际读出的单元数
 size_t lystream_out(LyStream_t *stream, cell_t *buf, size_t size)
 {
     LYDSS_ASSERT(stream);
@@ -134,7 +131,6 @@ size_t lystream_clean(LyStream_t *stream)
 }
 
 /// @brief 删除流
-/// @note 静态流只解除缓冲区绑定，不释放调用者提供的内存与句柄
 void lystream_delete(LyStream_t *stream)
 {
     LYDSS_ASSERT(stream);

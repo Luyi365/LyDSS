@@ -1,13 +1,12 @@
 /**
  * @file lyset.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 链式哈希集合
  * @date 2026-08-10
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * Matters related to this document.
+ * @note 槽位数固定、不 rehash；类型语义由调用者的 hash/equals 回调提供。
  */
 
 #include "../inc/lydss_api.h"

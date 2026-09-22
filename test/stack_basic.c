@@ -1,13 +1,10 @@
 /**
  * @file stack_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 栈用例
  * @date 2026-08-18
  *
  * @copyright Copyright (c) 2026
- *
- * @note
- * Matters related to this document.
  */
 
 #include "../inc/lydss_api.h"

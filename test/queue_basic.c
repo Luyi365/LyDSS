@@ -5,9 +5,6 @@
  * @date 2025-08-06
  *
  * @copyright Copyright (c) 2026
- *
- * @note
- * Matters related to this document.
  */
 /*
 #include <stdio.h>

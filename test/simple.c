@@ -1,13 +1,10 @@
 /**
  * @file simple.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 栈用例，由 LyDSS_SimpleTest 运行
  * @date 2025-07-16
  *
  * @copyright Copyright (c) 2025
- *
- * @note
- * Matters related to this document.
  */
 
 #include "../inc/lydss_api.h"

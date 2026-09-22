@@ -1,13 +1,12 @@
 /**
  * @file lytable.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 字符串键哈希表
  * @date 2026-08-23
  *
  * @copyright Copyright (c) 2026
  *
- * @note
- * Matters related to this document.
+ * @note 键存副本、值只存指针且不由表释放；空句柄以返回值报错而非断言中止。
  */
 
 #include "../inc/lydss_api.h"
@@ -21,6 +20,8 @@
 
 #define INITIAL_CAPACITY 16     ///< 槽位初始数量
 #define LOAD_FACTOR 0.75        ///< 触发扩容的负载因子
+
+/* 负载判定用浮点除法，无 FPU 目标会链入软浮点；改整数时注意 size*4>=capacity*3 会溢出 */
 
 struct LyTableNode {
     char *key;                  ///< 键的副本
@@ -59,8 +60,7 @@ LyTable_t *lytable_create(LyTableHash_t hash)
     return table;
 }
 
-/// @brief 插入或更新键值对
-/// @note 负载达到 LOAD_FACTOR 时先扩容，键以副本存储，值只保留指针
+/// @brief 插入或更新键值对，键存副本、值只存指针
 int lytable_set(LyTable_t *table, const char *key, void *value)
 {
     if(table == NULL
@@ -153,8 +153,7 @@ size_t lytable_size(LyTable_t *table)
     return table != NULL ? table->size : 0;
 }
 
-/// @brief 释放表
-/// @note 不释放 value 指向的内存，由调用者负责
+/// @brief 释放表，不释放 value 指向的内存
 void lytable_destroy(LyTable_t *table)
 {
     if(table == NULL) {
