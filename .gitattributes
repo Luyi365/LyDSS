@@ -1,0 +1,9 @@
+# 仓库内统一存 LF，检出时按各平台习惯。贡献者无需任何本地配置
+* text=auto
+
+# 行尾有语义的文件，显式固定
+makefile.win  text eol=lf
+
+# 二进制，禁止任何转换与 diff
+*.ico  binary
+*.res  binary

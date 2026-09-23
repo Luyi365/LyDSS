@@ -6,3 +6,11 @@
 	path = .agents/skills/c-code-review
 	url = https://github.com/Luyi365/c-code-review.git
 	ignore = dirty
+[submodule ".agents/skills/editorconfig-doctor"]
+	path = .agents/skills/editorconfig-doctor
+	url = https://github.com/Luyi365/editorconfig-doctor.git
+	ignore = dirty
+[submodule ".agents/skills/git-doctor"]
+	path = .agents/skills/git-doctor
+	url = https://github.com/Luyi365/git-doctor.git
+	ignore = dirty

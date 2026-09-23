@@ -58,10 +58,10 @@ dkms.conf
 *.code-workspace
 
 # RedPandaIDE
-dev/RedPandaIDE/*.layout
-dev/RedPandaIDE/*.res
-dev/RedPandaIDE/*.debug
-dev/RedPandaIDE/*.bookmarks
+examples/RedPandaIDE/*.layout
+examples/RedPandaIDE/*.res
+examples/RedPandaIDE/*.debug
+examples/RedPandaIDE/*.bookmarks
 
 # clangd
 .cache/

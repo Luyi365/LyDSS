@@ -1,0 +1,33 @@
+# 顶层配置。必须保留，否则会继续向上查找并继承贡献者主目录的 .editorconfig
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+tab_width = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# 行尾由版本控制层管理，故 [*] 不设 end_of_line；
+# 以下例外与 .gitattributes 中的行尾声明逐条对应。
+
+# Red Panda IDE 的 make 文件，命令行必须以制表符开头，转成空格会导致 make 报错。
+# 与 .gitattributes 中的 `makefile.win text eol=lf` 对应。
+[makefile.win]
+indent_style = tab
+end_of_line = lf
+
+# Markdown 以行尾两个空格表示强制换行，裁剪会破坏排版
+[*.md]
+trim_trailing_whitespace = false
+
+# 编译产出的资源与图标，由工具链生成，不强制转码也不改动空白。
+# 与 .gitattributes 中的 `*.ico binary`、`*.res binary` 对应。
+[*.{ico,res}]
+charset = unset
+indent_style = unset
+indent_size = unset
+tab_width = unset
+trim_trailing_whitespace = false
+insert_final_newline = unset
