@@ -20,7 +20,7 @@
 #include <stdbool.h>
 
 struct LyStack {
-    LyStore_t store;              ///< 栈数据描述（地址、容量、成员大小）
+    LyStore_t store;            ///< 栈数据描述（地址、容量、成员大小）
     unsigned long top;          ///< 栈顶索引（当前成员数量）
     bool is_static;             ///< 栈数据是否由调用者提供
 };

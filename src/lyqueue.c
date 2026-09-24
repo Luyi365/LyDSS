@@ -23,7 +23,7 @@
 #include <stdbool.h>
 
 struct LyQueue {
-    LyStore_t store;                  ///< 成员区描述（地址、容量、成员大小）
+    LyStore_t store;                ///< 成员区描述（地址、容量、成员大小）
     unsigned long en_index;         ///< 入队位置索引
     unsigned long de_index;         ///< 出队位置索引
     unsigned long count;            ///< 队列中成员的数量

@@ -1,64 +1,43 @@
 /**
  * @file queue_basic.c
  * @author Luyi365 (luyi.hub@foxmail.com)
- * @brief
+ * @brief 队列用例
  * @date 2025-08-06
  *
  * @copyright Copyright (c) 2026
  */
-/*
-#include <stdio.h>
+
 #include "../inc/lydss_api.h"
 
-#define QUEUE_SIZE 10
+#if LYDSS_QUEUE_ENABLED
+
+#include <stdio.h>
 
 int queue_basic()
 {
-    printf("Start queue api test...\n");
+    LyQueue_t *queue = lyqueue_create(4, sizeof(int));
 
-    int temp = 0;
-    
-    Queue_t *queue_handle = queue_create(QUEUE_SIZE, sizeof(int));
-
-    temp = 0xa55a;
-    printf("Send value1: 0x%x\n", temp);
-    queue_send(queue_handle, &temp);
-    temp = 0x5aa5;
-    printf("Send value2: 0x%x\n", temp);
-    queue_send(queue_handle, &temp);
-
-    temp = 0;
-    queue_receive(queue_handle, &temp);
-    printf("Receive value1: 0x%x\n", temp);
-    queue_receive(queue_handle, &temp);
-    printf("Receive value2: 0x%x\n", temp);
-
-    int send_buf[QUEUE_SIZE] = { 0 }, recv_buf[QUEUE_SIZE] = { 0 };
-    for(int i = 0; i < QUEUE_SIZE; i++) {
-        send_buf[i] = i;
+    for(int i = 1; i <= 4; i++) {
+        lyqueue_send(queue, &i);
     }
+    printf("count = %lu, full = %d\n",
+        lyqueue_count(queue), lyqueue_is_full(queue));      // 4, 1
 
-    printf("Send multi-value: ");
-    for(int i = 0; i < QUEUE_SIZE; i++) {
-        printf("%d ", send_buf[i]);
-    }
-    queue_send_multi(queue_handle, send_buf, QUEUE_SIZE);
-    printf("\n");
-    queue_receive_multi(queue_handle, recv_buf, QUEUE_SIZE);
-    printf("Receive multi-value: ");
-    for(int i = 0; i < QUEUE_SIZE; i++) {
-        printf("%d ", recv_buf[i]);
+    /* 队列的特征：先进先出；满时拒收而不覆盖既有成员 */
+    int more = 5;
+    printf("send5 = %d\n", lyqueue_send(queue, &more));      // 0
+
+    int val = 0;
+    printf("recv  = ");
+    while(lyqueue_is_empty(queue) == false) {
+        lyqueue_receive(queue, &val);
+        printf("%d ", val);                                 // 1 2 3 4
     }
     printf("\n");
 
-    for(int i = 0; i < QUEUE_SIZE; i++){
-        if(recv_buf[i] != send_buf[i]) {
-            printf("Queue api test failed!\n");
-            return 0;
-        }
-    }
-    printf("Queue api test success!\n");
+    lyqueue_delete(queue);
 
-    return 1;
+    return 0;
 }
-*/
+
+#endif /* LYDSS_QUEUE_ENABLED */

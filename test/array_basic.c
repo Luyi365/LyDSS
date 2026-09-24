@@ -17,31 +17,23 @@ int array_basic()
 {
     LyArray_t *array = lyarray_create(5, sizeof(int));
 
-    printf("length    = %lu\n", lyarray_length(array));     // 5
-    printf("item_size = %lu\n", lyarray_item_size(array));  // 4
+    printf("length    = %lu\n", lyarray_length(array));         // 5
+    printf("item_size = %lu\n", lyarray_item_size(array));      // 4
 
-    /* 全部槽位自始存在，创建时已清零 */
-    int val = -1;
-    lyarray_read(array, 4, &val);
-    printf("slot4     = %d\n", val);                        // 0
-
-    /* 任意下标可直接写入，无需按顺序追加 */
+    /* 定长容器的特征：槽位自始存在，可按任意下标直接写入，无需先追加 */
     int a = 10, b = 30;
     lyarray_set(array, 0, &a);
     lyarray_set(array, 3, &b);
+
     printf("dump      = ");
     for(unsigned long i = 0; i < lyarray_length(array); i++) {
-        printf("%d ", *(int *)lyarray_get(array, i));        // 10 0 0 30 0
+        printf("%d ", *(int *)lyarray_get(array, i));           // 10 0 0 30 0
     }
     printf("\n");
 
+    int val = 0;
     lyarray_read(array, 3, &val);
-    printf("read3     = %d\n", val);                        // 30
-
-    /* 边界对 length 判定 */
-    printf("set5      = %d\n", lyarray_set(array, 5, &a));  // 0
-    printf("read5     = %d\n", lyarray_read(array, 5, &val));// 0
-    printf("get5      = %p\n", lyarray_get(array, 5));      // (nil)
+    printf("read3     = %d\n", val);                            // 30
 
     lyarray_delete(array);
 

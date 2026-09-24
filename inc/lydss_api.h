@@ -800,7 +800,7 @@ typedef bool (Equals_t)(const void *a, const void *b);
  *
  * @param size 槽位数量，不是元素数量上限；元素数远超它时会退化成长链表
  * @param elem_size 元素大小
- * @param hash 哈希函数，不可为 NULL
+ * @param hash 哈希函数，传 NULL 则使用内置的按字节 FNV-1a
  * @param equals 比较函数，不可为 NULL
  * @return 集合句柄，内存不足时返回 NULL
  *

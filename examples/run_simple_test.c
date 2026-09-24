@@ -6,7 +6,7 @@
  *
  * @copyright Copyright (c) 2026
  *
- * @note simple() 用栈，调用点的开关须与 test/simple.c 的门控成对出现。
+ * @note
  */
 
 #include "../inc/lydss_cfg.h"
@@ -18,12 +18,10 @@ int main()
 {
     int status = 0;
 
-#if LYDSS_STACK_ENABLED
     /** ./test/simple.c */
     extern int simple();
     status |= simple();
     printf("\n");
-#endif
 
     return status;
 }

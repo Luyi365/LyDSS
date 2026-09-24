@@ -15,36 +15,22 @@
 
 int stream_basic()
 {
-    LyStream_t *stream = lystream_create(8);
+    LyStream_t *stream = lystream_create(16);
 
-    cell_t in[5] = { 1, 2, 3, 4, 5 };
-    cell_t out[8] = { 0 };
+    cell_t text[] = "LyDSS stream";
+    size_t len = sizeof(text) - 1;               /* 不写入结尾的 '\0' */
 
-    printf("in     = %u\n", (unsigned)lystream_in(stream, in, 5));      // 5
-    printf("count  = %u\n", (unsigned)lystream_count(stream));          // 5
+    printf("in    = %u\n", (unsigned)lystream_in(stream, text, len));    // 12
+    printf("count = %u\n", (unsigned)lystream_count(stream));            // 12
 
-    printf("out    = %u : ", (unsigned)lystream_out(stream, out, 3));   // 3
-    for(int i = 0; i < 3; i++) {
-        printf("%u ", out[i]);                                          // 1 2 3
+    /* 流的特征：写入的是一段连续数据，取出时可按需分段，不必整存整取；
+       余量不足时只给出剩下的部分，由返回值告知实际取到多少 */
+    cell_t buf[8] = { 0 };
+    for(int seg = 1; lystream_count(stream) > 0; seg++) {
+        size_t got = lystream_out(stream, buf, 5);
+        printf("seg%d  = %u : %.*s\n", seg, (unsigned)got, (int)got, (char *)buf);
     }
-    printf("\n");
-    printf("count  = %u\n", (unsigned)lystream_count(stream));          // 2
-
-    /* 写入 6 个单元触发游标回绕（容量 8，已用 2） */
-    cell_t more[6] = { 6, 7, 8, 9, 10, 11 };
-    printf("in     = %u\n", (unsigned)lystream_in(stream, more, 6));    // 6
-    printf("full   = %u\n", (unsigned)lystream_in(stream, more, 1));    // 0，已满
-
-    printf("out    = %u : ", (unsigned)lystream_out(stream, out, 8));   // 8
-    for(int i = 0; i < 8; i++) {
-        printf("%u ", out[i]);                            // 4 5 6 7 8 9 10 11
-    }
-    printf("\n");
-    printf("empty  = %u\n", (unsigned)lystream_count(stream));          // 0
-
-    lystream_in(stream, in, 5);
-    printf("clean  = %u\n", (unsigned)lystream_clean(stream));          // 5
-    printf("count  = %u\n", (unsigned)lystream_count(stream));          // 0
+    printf("count = %u\n", (unsigned)lystream_count(stream));            // 0
 
     lystream_delete(stream);
 

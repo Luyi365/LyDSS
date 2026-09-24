@@ -15,12 +15,20 @@
 
 int pool_basic()
 {
-    int a = 5;
+    int a = 5, b = 6;
     LyPool_t *pool = lypool_create(10);
 
+    /* 池的特征：以名字登记外部对象，只保留指针不复制 */
     lypool_post(pool, "TEST1", &a);
+    lypool_post(pool, "TEST2", &b);
 
-    printf("a = %d\n", *(int *)(lypool_get(pool, "TEST1")));
+    printf("TEST1 = %d\n", *(int *)lypool_get(pool, "TEST1"));   // 5
+    printf("miss  = %p\n", lypool_get(pool, "NONE"));            // (nil)
+
+    lypool_clear(pool, "TEST1");
+    printf("clear = %p\n", lypool_get(pool, "TEST1"));           // (nil)
+
+    lypool_delete(pool);
 
     return 0;
 }

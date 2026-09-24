@@ -14,19 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
-/// @brief 供集合使用的 FNV-1a 哈希
-static unsigned fnv1a(const void *data, size_t len)
-{
-    const unsigned char *p = data;
-    unsigned h = 2166136261u;
-    for(size_t i = 0; i < len; i++) {
-        h ^= p[i];
-        h *= 16777619u;
-    }
-    return h;
-}
-
 /// @brief 按字节比较相等，长度写死 sizeof(int)，仅适用于 int 元素
+/// @note Equals_t 不接收长度参数，库无法提供默认实现，必须由调用者给出
 static bool byte_equals(const void *a, const void *b)
 {
     return memcmp(a, b, sizeof(int)) == 0;
@@ -34,20 +23,19 @@ static bool byte_equals(const void *a, const void *b)
 
 int set_basic()
 {
-    LySet_t *set = lyset_init(5, sizeof(int), fnv1a, byte_equals);
+    /* hash 传 NULL 表示使用内置的按字节 FNV-1a */
+    LySet_t *set = lyset_init(5, sizeof(int), NULL, byte_equals);
 
-    int a = 1, b = 2, c = 3;
+    int a = 1, b = 2;
     lyset_add(set, &a);
     lyset_add(set, &b);
-    lyset_add(set, &c);
 
-    int d = 2;
-    if(lyset_contains(set, &d)) {
-        printf("set contains %d\n", d);
-    }
-    else {
-        printf("set does not contain %d\n", d);
-    }
+    /* 集合的特征：元素唯一，重复添加被拒绝 */
+    printf("add dup  = %d\n", lyset_add(set, &b));               // 0
+    printf("count    = %u\n", (unsigned)lyset_count(set));       // 2
+    printf("contains = %d\n", lyset_contains(set, &b));          // 1
+
+    lyset_destroy(set);
 
     return 0;
 }

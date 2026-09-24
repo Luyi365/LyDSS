@@ -22,7 +22,7 @@
 #include <stdbool.h>
 
 struct LyArray {
-    LyStore_t store;              ///< 成员区描述（地址、长度、成员大小）
+    LyStore_t store;            ///< 成员区描述（地址、长度、成员大小）
     bool is_static;             ///< 成员区是否由调用者提供
 };
 

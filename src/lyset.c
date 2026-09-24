@@ -34,11 +34,12 @@ struct LySet {
     } *elem_node[];                 ///< 槽位数组
 };
 
+static unsigned set_hash_default(const void *data, size_t len);
+
 /// @brief 初始化一个集合
 LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equals)
 {
     LYDSS_ASSERT(elem_size);
-    LYDSS_ASSERT(hash);
     LYDSS_ASSERT(equals);
 
     LySet_t *set = calloc(1, sizeof(LySet_t) + size * sizeof(struct ElemNode *));
@@ -49,7 +50,7 @@ LySet_t *lyset_init(size_t size, size_t elem_size, Hash_t *hash, Equals_t *equal
     set->size = size;
     set->elem_size = elem_size;
     set->count = 0;
-    set->hash = hash;
+    set->hash = hash != NULL ? hash : set_hash_default;
     set->equals = equals;
 
     return set;
@@ -244,6 +245,21 @@ LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other)
     }
 
     return LySetRelation_NONE;
+}
+
+/* --------------------------------- static --------------------------------- */
+/// @brief 默认哈希函数（FNV-1a），按字节处理元素
+static unsigned set_hash_default(const void *data, size_t len)
+{
+    const unsigned char *byte = data;
+    unsigned hash = 2166136261u;
+
+    for(size_t i = 0; i < len; i++) {
+        hash ^= byte[i];
+        hash *= 16777619u;
+    }
+
+    return hash;
 }
 
 #endif /* LYDSS_SET_ENABLED */

@@ -1,19 +1,32 @@
 # LyDSS Agent Guide
 
+## 外部规则（先读，不在本文件重复）
+
+以下规则由 `.agents/` 下的子模块提供，是各自领域的唯一判定基准。**本文件只记录这些规则覆盖不到的、项目特有的决定与状态。**
+
+| 领域 | 读这里 |
+|---|---|
+| C 代码风格（缩进、大括号、命名、缩写、文件与函数顺序、注释语法） | [`.agents/skills/c-code-review/references/c-style.md`](.agents/skills/c-code-review/references/c-style.md)，审查流程见同目录 `SKILL.md`，格式化配置见 `assets/.clang-format` |
+| 注释内容（写什么、不写什么、精简程度） | [`.agents/rules/code-comment/AGENTS.md`](.agents/rules/code-comment/AGENTS.md) |
+| Git 配置、子模块、行尾与 `.gitattributes` | [`.agents/skills/git-doctor/SKILL.md`](.agents/skills/git-doctor/SKILL.md) |
+| `.editorconfig` | [`.agents/skills/editorconfig-doctor/SKILL.md`](.agents/skills/editorconfig-doctor/SKILL.md) |
+
+分工：`c-style.md` 决定注释的**语法与位置**，code-comment 决定**能写什么内容**；重叠处语法从 `c-style.md`。规则之间冲突时，按各 skill 自身的优先级条款处理，不要自行发明裁决。
+
+改完代码后用 `c-code-review` skill 审一遍改动的文件。若结论与本文件「项目特有的风格决定」冲突，以本文件为准；若你新引入一处有意的偏离，当场补记到那一节。
+
 ## Project Shape
 
-- LyDSS stands for **DataStore Struct**, prefixed with the author's handle. **`Ly` is short for Luyi (the author, Luyi365) — not "Lyi".** Do not expand it as `Lyi` in the README or anywhere else. The spelling is `LyDSS` everywhere; `LyDDS` is a historical typo that was fully removed. Do not reintroduce it.
-- LyDSS is a C project that builds one static library per container in `src/`: array, bucket, list, pool, queue, set, stack, stream, table, and vector. All ten libraries are independent — no container links against another.
-- Public declarations are centralized in [`inc/lydss_api.h`](inc/lydss_api.h); configuration, assertion behavior, and the per-container feature switches are in [`inc/lydss_cfg.h`](inc/lydss_cfg.h). See Feature Gating below.
-- Keep container implementations in their matching `src/ly<name>.c` file and tests in `test/<name>_basic.c`.
-- Use existing naming conventions: `ly<container>_<operation>` functions and `Ly<Container>_t` types, except for the legacy lower-case `lytable` API.
-- Header guards follow the project style rule `文件名_H`: `LYDSS_API_H`, `LYDSS_CFG_H`. Double-underscore-wrapped guards are reserved identifiers and must not be used.
-- Assertion and config macros are prefixed `LYDSS_`: `LYDSS_ASSERT`, `LYDSS_PRINTF`, `LYDSS_ASSERT_ENABLED`.
-- Sources include the public header by relative path (`#include "../inc/lydss_api.h"`), so no include directories are configured in CMake.
+- `Ly` 是作者 Luyi（Luyi365）的缩写，**不是 "Lyi"**；`LyDSS` = Luyi DataStore Struct。拼写恒为 `LyDSS`，`LyDDS` 是已清除的历史笔误，不要重新引入。
+- 每个容器在 `src/` 下编译成一个独立静态库：array、bucket、list、pool、queue、set、stack、stream、table、vector。**十个库互不链接。**
+- 公开声明集中在 [`inc/lydss_api.h`](inc/lydss_api.h)；配置、断言与功能开关在 [`inc/lydss_cfg.h`](inc/lydss_cfg.h)；容器间共用的内部底座在 [`inc/lydss_priv.h`](inc/lydss_priv.h)。
+- 实现放在对应的 `src/ly<名称>.c`，用例放在 `test/<名称>_basic.c`。
+- 命名：函数 `ly<容器>_<操作>`，类型 `Ly<Container>_t`（`lytable` 是遗留的全小写例外）。断言与配置宏前缀 `LYDSS_`。
+- 源文件用相对路径包含公开头文件（`#include "../inc/lydss_api.h"`），CMake 没有配置任何 include 目录。
 
 ## Build And Test
 
-**`CMakePresets.json` does not exist in this repository and is listed in `.gitignore`.** Any command of the form `cmake --preset GCC` will fail. Use an explicit generator and compiler instead:
+**`CMakePresets.json` 不存在且被 gitignore**，所以 `cmake --preset GCC` 之类的命令一定失败。用显式的生成器与编译器：
 
 ```powershell
 cmake -S . -B out/build/verify -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS="-Wall -Wextra"
@@ -21,340 +34,210 @@ cmake --build out/build/verify
 ctest --test-dir out/build/verify --output-on-failure
 ```
 
-`out/` is gitignored, so it is a safe scratch location. Clean it up when finished.
+`out/` 被 gitignore，可作为临时目录，用完清理。改完代码必须在 `-Wall -Wextra` 下验证；`src/` 目前零告警，保持这个状态。
 
-Toolchain notes for this machine:
+本机工具链：
 
-- `gcc` 13.2 resolves to `D:\Program Files\mingw-w64-gcc-13.2-stable-r40\bin`. It targets **i686-w64-mingw32 (32-bit)**, so `unsigned long` and `size_t` are both 32-bit. Overflow guards written against `ULONG_MAX` are therefore tighter than on a 64-bit target — keep them.
-- Measured handle sizes on that target (`void *` / `size_t` / `unsigned long` all 4 bytes): `LyArray` 16, `LyQueue` 28, `LyStack` 20, `LyStream` 24, `LyPool` 12, `LyPoolItem` 8. These matter if the static-construction problem below is ever solved by publishing a size, and they are target-specific — re-measure rather than hardcoding them for another ABI.
-- `clang` and `ninja` are also on PATH. The path `C:\Program Files\mingw64\bin\gcc.exe` referenced by [`.vscode/tasks.json`](.vscode/tasks.json) does **not** exist; that task is stale.
-- Linking occasionally fails once on Windows with no compiler diagnostic (transient file lock, typically on `libLyQueue.a`). Re-run the build before investigating — a second invocation normally succeeds.
+- `gcc` 13.2 位于 `D:\Program Files\mingw-w64-gcc-13.2-stable-r40\bin`，目标是 **i686-w64-mingw32（32 位）**，`unsigned long` 与 `size_t` 同为 4 字节。句柄尺寸是目标相关的，换 ABI 要重新测量而不是照抄。
+- `clang` 与 `ninja` 也在 PATH 上。[`.vscode/tasks.json`](.vscode/tasks.json) 引用的 `C:\Program Files\mingw64\bin\gcc.exe` **不存在**，该任务已失效。
+- Windows 上偶发一次无诊断的链接失败（文件锁，常见于 `libLyQueue.a`）。**先重跑一次构建再排查**，第二次通常就过。
 
-CTest runs two aggregate executables, `LyDSS_SimpleTest` and `LyDSS_AllBasicTest`, built from [`examples/run_simple_test.c`](examples/run_simple_test.c) and [`examples/run_all_basic_test.c`](examples/run_all_basic_test.c). Both runners now accumulate results with `status |=` and return that status, so a non-zero return from any test function does fail the CTest run. Tests are still print-based smoke tests, not assertions — passing means "did not crash and returned 0", not "output was verified".
+CTest 跑两个可执行目标：`LyDSS_SimpleTest` 与 `LyDSS_AllBasicTest`，分别由 [`examples/run_simple_test.c`](examples/run_simple_test.c) 和 [`examples/run_all_basic_test.c`](examples/run_all_basic_test.c) 驱动。两个运行器都以 `status |=` 累积返回值，任一用例返回非 0 都会让 CTest 失败。`LyDSS_AllBasicTest` 通过 `file(GLOB_RECURSE SOURCES_TEST test/*.c)` 编译 `test/` 下**所有**文件，但只有运行器显式调用的函数才会执行。
 
-The all-basic target compiles **every** file in `test/` via `file(GLOB_RECURSE SOURCES_TEST test/*.c)`, but only the functions explicitly called by the runner actually execute. See Testing Status below.
+## Feature Gating
 
-## Feature Gating (Compile-Time)
+每个容器都能单独裁剪。[`inc/lydss_cfg.h`](inc/lydss_cfg.h) 为十个容器各定义一个开关（`LYDSS_POOL_ENABLED` … `LYDSS_BUCKET_ENABLED`，排列顺序与 `lydss_api.h` 的分节一致），非 0 启用、`0` 裁剪，默认全为 1。
 
-Every container can be compiled out individually. [`inc/lydss_cfg.h`](inc/lydss_cfg.h) defines one switch per container — `LYDSS_POOL_ENABLED`, `LYDSS_ARRAY_ENABLED`, `LYDSS_VECTOR_ENABLED`, `LYDSS_STACK_ENABLED`, `LYDSS_QUEUE_ENABLED`, `LYDSS_LIST_ENABLED`, `LYDSS_STREAM_ENABLED`, `LYDSS_TABLE_ENABLED`, `LYDSS_SET_ENABLED`, `LYDSS_BUCKET_ENABLED` — listed in the same order as the `lydss_api.h` sections. Non-zero enables, `0` strips. All default to `1`.
+所有开关（含 `LYDSS_ASSERT_ENABLED`）都包在 `#ifndef` 里，因此命令行上的 `-DLYDSS_SET_ENABLED=0` 优先于头文件默认值。**这是配置本库的推荐方式**，不要为了改配置去编辑头文件。
 
-Each switch, including `LYDSS_ASSERT_ENABLED`, is wrapped in `#ifndef`, so a `-DLYDSS_SET_ENABLED=0` on the command line wins over the header and the file does not need editing. That is the intended way to configure a build; the header default is the fallback.
+一个容器的门控出现在**四处，必须同步**：
 
-A container's gate appears in **four** places, and all four must be kept in sync:
+1. `inc/lydss_cfg.h` 的 `#ifndef`/`#define` 默认值。
+2. `inc/lydss_api.h` 的声明块，紧贴 `/* ---- 名称 ---- */` 分隔线内侧。
+3. `src/ly<名称>.c` 的实现。
+4. `test/<名称>_basic.c` 的函数体，以及 `examples/run_all_basic_test.c` 的调用点。
 
-1. The `#ifndef`/`#define` default in `inc/lydss_cfg.h`.
-2. The declaration block in `inc/lydss_api.h`, wrapped `#if LYDSS_X_ENABLED` … `#endif /* LYDSS_X_ENABLED */` immediately inside the `/* ---- 名称 ---- */` separator.
-3. The implementation in `src/ly<name>.c`, wrapped the same way.
-4. The matching `test/<name>_basic.c` body, plus the call site in `examples/run_all_basic_test.c`. (`test/simple.c` and `examples/run_simple_test.c` are gated on `LYDSS_STACK_ENABLED`, because `simple()` exercises the stack.)
+只改其中一处会导致裁剪后编译或链接失败。新增容器时四处一起加，并至少验证「全开」和「关掉该容器」两种配置。
 
-Because the gate has to be visible before it can be tested, `.c` files now include `"../inc/lydss_api.h"` **first**, then open the `#if`, then include the standard library headers inside the guard. This is also the order the style spec asks for (本模块头文件 → 项目内 → 标准库), so the previous stdlib-first ordering was a violation that this change incidentally fixed. A disabled container therefore pulls in no `<stdlib.h>`/`<string.h>` either.
+`.c` 文件先包含 `"../inc/lydss_api.h"`，再开 `#if`，标准库头文件放在保护区内——门控必须先可见才能判断，而这也正好符合 `c-style.md` 要求的 include 顺序。被裁剪的容器因此连 `<stdlib.h>` 都不引入。
 
-CMake is deliberately untouched: the ten library targets are always declared and always linked. A disabled container still compiles, but to an object with no functions in it. Verified with `nm --defined-only`: an enabled `libLyArray.a` exports 13 symbols, a disabled one exports only the three empty `.text`/`.data`/`.bss` section markers. If you want the targets themselves to disappear, that needs CMake options mirroring these macros — not done, and it would duplicate the source of truth.
+**CMake 刻意不参与门控**：十个库目标始终声明、始终链接，被关掉的容器仍然编译，只是产出一个没有函数的目标文件。想让目标本身消失需要在 CMake 里再加一套镜像这些宏的 option，那会把配置真相拆成两份，没有做。
 
-Verified configurations (all with `-Wall -Wextra`, Ninja, gcc 13.2):
-
-| Configuration | Result |
-|---|---|
-| all enabled | builds clean, 2/2 ctest pass |
-| `ARRAY`/`STACK`/`SET`/`TABLE`/`BUCKET` off | builds clean, 2/2 pass, array test correctly skipped at runtime |
-| all ten off | builds clean, 2/2 pass |
-| all ten off **and** `LYDSS_ASSERT_ENABLED=0`, plus `-pedantic` | builds clean |
-| `LYDSS_ASSERT_ENABLED=0`, containers on | builds clean, 2/2 pass |
-
-Gating adds no new warnings even under `-pedantic`. The three `ISO C forbids an empty translation unit` warnings that `-pedantic` reports are pre-existing and independent of the switches: `test/queue_basic.c`, `test/stack_base_type.c` (whole body block-commented) and `test/table_basic.c` (no function). They appear identically with everything enabled.
-
-When adding a container, add its switch to all four places above and re-run at least the all-enabled and the container-off builds.
+唯一的例外是 `test/simple.c` 与 `examples/run_simple_test.c`，见 Testing Status。
 
 ## Internal Base Layer
 
-[`inc/lydss_priv.h`](inc/lydss_priv.h) holds the operations shared between containers. It lives in `inc/` alongside the public headers because this project keeps **one** header directory; the `priv` in the name, not its location, marks it private. That is safe today only because CMake declares no public include directory at all — `inc/` is not currently an exported path. **If a public include directory is ever declared, export only `lydss_api.h` and `lydss_cfg.h`, or move this file to `inc/internal/`**, otherwise the base layer silently becomes an external promise. Two rules define what belongs there, and they were settled deliberately:
+[`inc/lydss_priv.h`](inc/lydss_priv.h) 存放容器间共用的底层操作。它与公开头文件同处 `inc/`（本项目只保留一个头文件目录），靠**文件名里的 `priv` 而非位置**标记私有。这在当前安全，仅因为 CMake 没有声明任何公开 include 目录。**若将来声明了，只能导出 `lydss_api.h` 与 `lydss_cfg.h`**，否则底座会静默变成对外承诺。
 
-**A thing with a handle and a lifecycle is a container, not a primitive.** Primitives are stateless operations. This is why `LyArray` is *not* the base for queue and stack even though the fields line up — it has `LyArray_t *`, `is_static`, its own asserts and bounds checks. Composing it would mean nesting lifecycles and paying its validation twice. Likewise `LyVector` is not a primitive; only its growth policy could be, and that policy is vector-specific so it stays in `lyvector.c`.
+两条判据决定什么能进底座：
 
-**The base is header-only and not public.** Everything in it is a `static inline` function or a macro, and none of it may be re-declared in `lydss_api.h`. Three consequences, all of which were the point:
+**有句柄和生命周期的是容器，不是原语。** 原语是无状态操作。所以 `LyArray` 不能当队列和栈的底座——尽管字段对得上，它有句柄、有 `is_static`、有自己的断言与边界检查，组合它等于嵌套生命周期并重复付一次校验。同理 `LyVector` 不是原语，只有它的增长策略可能是，而那策略是 vector 专属的，留在 `lyvector.c`。
 
-1. No cross-library dependency. The ten libraries still do not link against one another, so the ten feature switches stay freely combinable — `LYDSS_QUEUE_ENABLED=1` with `LYDSS_ARRAY_ENABLED=0` remains valid. Composing through a *linked* base would have turned the gating matrix into a dependency graph.
-2. Nothing to inline across translation units. CMake declares no `INTERPROCEDURAL_OPTIMIZATION` and no `-flto`, so a cross-library call could not have been inlined; each element access would have cost a real call plus redundant asserts and a second bounds check.
-3. Freedom to refactor. A public base would be frozen by compatibility.
+**底座只能是头文件，全部 `static inline` 函数或宏。** 这保证：十个库仍然互不链接，十个开关可自由组合；没有跨翻译单元的调用需要内联（CMake 未开 LTO，跨库调用本就内联不了）；底座保留随时重构的自由。底座**不做参数断言**，调用方进入前已校验，重复校验是嵌入式热路径上的纯开销。
 
-The base deliberately performs **no parameter assertions**. Callers validate handles and bounds before entering it; re-checking is pure overhead on an embedded hot path.
+**不建 `lydss_priv.c`。** 共享 `.c` 要么编进每个库（应用同时链接两个容器时符号重复定义），要么单独成库（正是本设计要避免的跨库依赖）。由此得出一条规则：**某段共用逻辑大到不适合内联时，说明这两个容器本该合并，而不是需要一个共享 `.c`。**
 
-### `LyStore_t` — the shared storage descriptor
+### `LyStore_t`
 
-```c
-typedef struct LyStore {
-    void *buffer;
-    unsigned long length;
-    unsigned long item_size;
-} LyStore_t;
-```
+定长连续存储的描述符（`buffer` / `length` / `item_size`），由 array、vector、stack、queue **按值嵌入**，成员名统一为 `store`。按值嵌入不产生间接层也不产生链接依赖——**结构体共用便宜，函数组合才贵**，不要混为一谈。
 
-Embedded **by value** as a member named `store` in array, vector, stack, and queue. Embedding by value costs nothing: `q->store.buffer` resolves to the same offset arithmetic as the old `q->items`, and it creates no link dependency because only fields and inline primitives are touched. This is why struct sharing is cheap while *function* composition (queue calling `lyarray_set`) is not — do not confuse the two.
+**刻意不含 `is_static`**：那是所有权标志而非存储描述，放进来会让永不支持静态构造的 vector 白占一个字节加对齐填充。排除之后四个容器的句柄尺寸与接入前逐字节相同。
 
-**`is_static` is deliberately excluded.** It is an ownership flag, not a storage description. Including it would give vector — which will never support static construction — a wasted byte plus padding, growing its handle from 16 to 20. With it excluded, all four handles are byte-identical to before. Measured on i686 after the change: `LyStore` 12, `LyArray` 16, `LyVector` 16, `LyStack` 20, `LyQueue` 28, `LyStream` 24, `LyPool` 12 — every one matching its pre-refactor size.
+vector 把 `capacity` 映射到 `store.length`，没有独立的容量字段。这不违反「vector 不得依赖 lyarray」的决定：共用的描述符不归任何容器所有，`realloc` 原地扩张也未受影响；倍增策略仍在 `lyvector.c`，只有「重分配并更新容量」下沉为 `lystore_realloc`。
 
-Vector maps `capacity` onto `store.length`; there is no separate capacity field, so `lyvector_capacity()` returns `vector->store.length`. This does **not** violate the settled "vector must not depend on `lyarray`" decision: the shared descriptor is owned by nobody, and `realloc`-based in-place growth is untouched. The growth *policy* (the 2× doubling in `vector_reserve_capacity`) stays in `lyvector.c`; only the "resize the buffer and update capacity" step moved to `lystore_realloc`.
+**stream 与 pool 不接入。** stream 的单元固定为 `cell_t`，`item_size` 是纯浪费，且缓冲区与句柄一次分配、销毁路径不同；pool 的成员是定型数组，按下标直接访问。两者不接入是正确的，**不要为了对称硬塞**。
 
-**Stream and pool opt out.** Stream has no `item_size` — its unit is fixed at `cell_t` — so adopting the descriptor would waste 4 bytes (24 → 28), and its buffer is allocated together with its handle so the destroy path differs too. Pool's items are a typed array reached by plain subscript. Both opting out is correct; do not force them in for symmetry.
+生命周期辅助（`lystore_bind` / `alloc` / `realloc` / `free` / `unbind` / `address`）收在描述符上，因为 `create`/`create_static`/`delete` 三件套在 array、stack、queue 里几乎逐字重复——那是真正的逻辑重复。
 
-Lifecycle helpers that were duplicated across the four containers now live on the descriptor: `lystore_bind` (static construction), `lystore_alloc` (with the overflow guard folded in), `lystore_realloc`, `lystore_free`, `lystore_unbind`, and `lystore_address`. The `create`/`create_static`/`delete` triplet was near-identical in array, stack, and queue; that was real duplicated logic, not just arithmetic, which is why it was worth extracting.
+**一处刻意的行为改变**：`lystore_unbind` 清空全部三个字段，统一了原先 array 清 `length` 而 stack/queue 不清的不一致。副作用是对已销毁的静态容器再查询，`is_full()` 会返回 `true`、长度与成员大小返回 0。仅在未定义用法下可观察。
 
-**One deliberate behavior change:** `lystore_unbind` clears all three descriptor fields. Previously `lyarray_delete` zeroed `length` while `lystack_delete` and `lyqueue_delete` left it intact — an existing inconsistency. Now a released static container uniformly reports `length == 0` and `item_size == 0`, which also means `lystack_is_full()`/`lyqueue_is_full()` return `true` instead of `false` on a destroyed handle. This is only observable when querying an already-destroyed container, which is unsupported use. Verified to be the *only* behavioral difference: a comparison probe covering array, vector, stack, queue, and the static-construction paths produced 58 of 59 identical lines, the single diff being this post-unbind query.
+### 命名与使用约束
 
-**No `lydss_priv.c`.** A shared `.c` would have to be either compiled into every container library (duplicate symbols when an application links two containers) or built as its own library that the ten link against (the cross-library dependency this design exists to avoid). The rule that follows: **if a piece of shared logic is too large to inline comfortably, that is a signal the two containers should be merged, not that a shared `.c` is needed.**
+名字描述**操作什么**，不描述在哪一层——层由文件标识。`LyStore_t` / `lystore_*` 是存储描述符，`lyring_next` 是环形游标，`LYDLIST_*` / `LYSLIST_*` 是侵入式链表宏。曾经统一用 `lybase_` 前缀，逼出了 `LYBASE_DLIST_UNLINK` 这种冗余复合名，已废弃。
 
-### Naming
+链表宏要求节点类型的自指针成员命名为 `prev` / `next`，`head` / `tail` 须为左值，且**参数会被多次求值，不要传带副作用的表达式**。`LyListNode` 是公开类型，布局不能改成嵌入基节点，所以用宏操作命名字段（对比 BSD `sys/queue.h`），避免破坏性 API 变更。
 
-Names describe *what is operated on*, not which layer they sit in — the layer is identified by the file, not by a prefix. `LyStore_t` / `lystore_*` for the storage descriptor, `lyring_*` for the ring cursor, `LYDLIST_*` and `LYSLIST_*` for the intrusive link macros. An earlier revision put everything under a single `lybase_` / `LYBASE_` umbrella; that forced redundant compounds like `LYBASE_DLIST_UNLINK` and was replaced. `LyStore_t` was also preferred over `LyBase_t` because a type name should say what a thing *is*, not where it sits — and it echoes the project's own name, Data**Store** Struct. These sit alongside the public `ly<container>_*` and the config macros `LYDSS_*`; privacy is carried by the header they live in, not by the prefix. Note the style spec's rule that `inline` functions put `{` on the *same* line — the base header follows it, unlike the plain functions everywhere else in `src/`.
-
-### What each container uses
-
-| Container | Base facilities used |
-|---|---|
-| `lyarray.c` | `LyStore_t`, `lystore_bind`/`alloc`/`free`/`unbind`/`address` |
-| `lyvector.c` | `LyStore_t`, `lystore_alloc`/`realloc`/`free`/`address` |
-| `lystack.c` | `LyStore_t`, `lystore_bind`/`alloc`/`free`/`unbind`/`address` |
-| `lyqueue.c` | `LyStore_t`, `lystore_bind`/`alloc`/`free`/`unbind`/`address`, `lyring_next` |
-| `lystream.c` | `lyring_next`, `lystore_bytes` (no `LyStore_t` — see above) |
-| `lylist.c` | all five `LYDLIST_*` macros |
-| `lybucket.c` | `LYDLIST_LINK_FRONT`/`LINK_REAR`/`LINK_BEFORE`/`LINK_AFTER`/`UNLINK` |
-| `lyset.c` | `LYSLIST_LINK_HEAD`, `LYSLIST_UNLINK` |
-| `lytable.c` | `LYSLIST_LINK_HEAD`, `LYSLIST_UNLINK` |
-| `lypool.c` | **none** — its items are a typed array accessed by plain subscript, and `calloc` already guards the product. Opting out is correct; do not wire it in for symmetry's sake. |
-
-The intrusive-list macros require the participating node type to name its links `prev` and `next`, and they reference their arguments more than once, so do not pass expressions with side effects. `LyListNode` is public so its layout could not be changed to embed a base node type; macros over named fields are the standard C answer (compare BSD `sys/queue.h`) and avoid a breaking API change.
-
-`lytable_remove` was converted from a `prev`-pointer walk to the `**pp_node` idiom so both hash containers unlink the same way.
-
-### Measured cost
-
-Compared `.text` per library at `-Os` against commit `3f1773f` (the last revision before the base layer). Net change across all ten: **+24 bytes total** — array +12, vector +4, stack +4, queue +8, stream +8, list +8, table −16, set 0, bucket −4, pool 0.
-
-The increases are attributable to the newly added overflow guards, not to inlining or to `LyStore_t`: embedding the descriptor by value produces identical offset arithmetic, and the addressing primitive compiles to what was already there. Table and bucket shrank because real logic was deduplicated. Handle sizes did not change at all (see `LyStore_t` above).
-
-One honest cost: `LYDLIST_UNLINK` clears the node's own `prev`/`next`, so `lylist_remove` performs two stores to memory it is about to `free`. That is the +8 bytes on list. It buys a macro that is safe to reuse when the node survives the unlink (which is exactly what `lybucket_remove` needs), and it fixes the dangling-pointer defect recorded below.
-
-### Verification performed
-
-ctest covers only pool, array, vector, and stream (see Testing Status), so most of this refactor is invisible to it. Two throwaway comparison programs were used instead, each built twice — once against the pre-refactor sources from a `git worktree` at the previous commit, once against the working tree — and their output diffed:
-
-1. **Linking logic** (list, bucket, set, table): forward *and* backward traversal after every list mutation, insertion before the head and after the tail, draining to empty, removing the only node, bucket head/tail/middle erase, set duplicate detection across conflict chains, 64 table insertions spanning several rehashes. 54 lines, byte-identical.
-2. **`LyStore_t` adoption** (array, vector, stack, queue): bounds behaviour, address stability, growth and shrink sequences, ring wrap-around under interleaved send/receive, plus the static-construction paths — reachable only by `#include`-ing the `.c` files directly, which is the one way to exercise `*_create_static` at all given the incomplete-type problem. 59 lines, one expected diff (the `lystore_unbind` change above).
-
-Reproduce this rather than trusting ctest if you touch linking, the descriptor, or any lifecycle path. A `git worktree` at the last good commit plus `gcc -I<tree>/src -I<tree>/inc` on the same probe source is the whole technique.
-
-## Working Agreement
-
-- **This file is the single source of truth for project rules.** There is no spec directory: for a single-developer, exploratory project the owner chose one durable document over per-feature requirements/design/tasks artifacts. Do not recreate `.kiro/specs/` or reference it. `.kiro/` itself does exist, holding a second copy of the `c-code-review` skill at `.kiro/skills/c-code-review/`; it is gitignored. Leave it alone — it is tooling, not project content.
-
-**Two notes on the `c-code-review` submodule, learned the hard way when it was removed and re-added.** First, `.kiro/skills/c-code-review/` originally contained a `.git` file reading `gitdir: ../../../.git/modules/.agents/skills/c-code-review`, i.e. it shared the submodule's git directory rather than being an independent copy; deleting `.git/modules/...` during submodule removal left it dangling with `fatal: not a git repository`, though its content files were untouched. That pointer has been deleted, so the `.kiro/` copy is now a plain directory and is no longer coupled to the submodule — keep it that way. Second, the `.gitmodules` entry carries `ignore = dirty`, which a plain `git submodule add` does **not** restore; check for it after any re-add, because losing it makes the submodule's working-tree churn show up in `git status`.
-- Development is conversational and incremental. When a rule, constraint, or decision emerges during a session, **append it to this file in the same session** — do not defer it, and do not park it in a throwaway planning document.
-- Record decisions with their reasoning, not just the outcome. The Architecture Decisions section exists because these questions were already settled once; without the reasoning they get reopened.
-- `out/` and `build/` belong to the build toolchain. They are output directories only — never write source files, probe files, or scratch code into them. Probe or scratch sources that must persist belong in the repository proper (`cmake/` for build-time checks, `test/` for run-time cases).
-- `.cache/clangd/` is the clangd language-server symbol index. It is generated automatically and safe to delete; it is not part of the project.
+底座改动若涉及接链或生命周期，**不要只依赖 ctest**（覆盖面有限）。用 `git worktree` 取出上一个良好提交，对同一份探针源码分别编译两版并 diff 输出——`gcc -I<tree>/src -I<tree>/inc` 即可。
 
 ## Container Contracts
 
-| Container | Element model | Ownership | Capacity | Static ctor |
+| 容器 | 成员模型 | 所有权 | 容量 | 静态构造 |
 |---|---|---|---|---|
-| array | fixed-size value copy, all `length` slots exist from creation | copies values | fixed at creation | yes |
-| vector | fixed-size value copy, `[0, size)` valid | copies values | grows 2x, `realloc` | no (growth needs realloc) |
-| queue | fixed-size value copy, ring FIFO | copies values | fixed | yes |
-| stack | fixed-size value copy, LIFO | copies values | fixed | yes |
-| stream | `cell_t` (unsigned char) bytes, ring FIFO | copies bytes | fixed | yes |
-| set | fixed-size value copy, chained hash | copies values, caller supplies `Hash_t`/`Equals_t` | bucket count fixed, no rehash | no |
-| table | copies key string, stores value pointer | does **not** free values | grows at load factor 0.75 | no |
-| pool | stores `name` pointer and object pointer, linear scan | owns neither | fixed, silently drops when full (`TODO` in source) | yes (declaration commented out in header) |
-| bucket | stores `name` and item pointers plus a copied `LyBucketMeta_t` | owns meta copies only | grows by node allocation, `count` is `uint8_t` so capped at 255 | no |
-| list | stores `void *data` per node | owns nodes, not data | unbounded | no |
+| array | 定长值拷贝，`length` 个槽位自始存在 | 拷贝值 | 创建时固定 | 有 |
+| vector | 定长值拷贝，`[0, size)` 有效 | 拷贝值 | 2 倍增长，`realloc` | 无（增长依赖 realloc） |
+| queue | 定长值拷贝，环形 FIFO | 拷贝值 | 固定 | 有 |
+| stack | 定长值拷贝，LIFO | 拷贝值 | 固定 | 有 |
+| stream | `cell_t`（unsigned char）字节，环形 FIFO | 拷贝字节 | 固定 | 有 |
+| set | 定长值拷贝，链式哈希 | 拷贝值，比较回调由调用者提供 | 槽位固定，不 rehash | 无 |
+| table | 拷贝键字符串，存值指针 | **不释放值** | 负载 0.75 时增长 | 无 |
+| pool | 存 `name` 与对象指针，线性扫描 | 两者都不拥有 | 固定，满时静默丢弃 | 有（声明被注释） |
+| bucket | 存 `name` 与项指针，外加拷贝的 `LyBucketMeta_t` | 只拥有元数据副本 | 按节点增长，`count` 是 `uint8_t` 故上限 255 | 无 |
+| list | 每节点存 `void *data` | 拥有节点，不拥有数据 | 无界 | 无 |
 
-Boundary conventions differ and matter:
+三处边界约定的差异要留意：
 
-- **array** checks indices against `length`. Every slot is readable and writable from creation; there is no notion of "used count". `lyarray_create` zeroes storage via `calloc`; `lyarray_create_static` deliberately leaves caller memory untouched.
-- **vector** checks indices against `size`. Free capacity beyond `size` is not addressable through the public API and is not initialized.
-- **stream** `in`/`out` return the number of cells actually transferred and may transfer less than requested. **queue** `send`/`receive` are all-or-nothing and return `bool`. This difference is intentional; see Architecture Decisions.
+- **array** 索引对 `length` 判定，每个槽位自始可读写，没有「已用数量」概念。`lyarray_create` 用 `calloc` 清零，`lyarray_create_static` 刻意不动调用者内存。
+- **vector** 索引对 `size` 判定，`size` 之外的空闲容量不可寻址也不初始化。
+- **stream** 的 `in`/`out` 返回实际传输的单元数，可以少于请求量；**queue** 的 `send`/`receive` 是全有或全无并返回 `bool`。这个差异是刻意的。
 
 ## Architecture Decisions
 
-These were settled deliberately. Do not re-litigate them without new information.
+已经定过的事，没有新信息不要重新讨论。
 
-**`lyarray` is a fixed-length storage primitive, not a sequence container.** Its purpose is to give C's native array the runtime metadata it lacks: length and element size, carried by the handle. It deliberately does **not** track a used count, and it has no `push`/`pop`/`insert`/`remove`. Those are sequence semantics that belong to the layer above. Its eight functions are `create`, `create_static`, `set`, `get`, `read`, `delete`, `length`, `item_size`.
+**`lyarray` 是定长存储原语，不是序列容器。** 它的用途是给 C 原生数组补上句柄携带的长度与成员大小。它刻意不跟踪已用数量，也没有 `push`/`pop`/`insert`/`remove`——那是上层的序列语义。
 
-**`lyarray` is intended as the eventual storage base for queue and stack.** Field-level evidence supports this: `LyStack` is `LyArray` plus `top`, and `LyQueue` is `LyArray` plus two cursors and a count. **The substitution has not been performed** and was explicitly deferred by the owner. Do not rewire queue or stack onto array unless asked.
+**`lyarray` 原本打算做 queue 和 stack 的存储基座**，字段层面的证据也支持（`LyStack` = `LyArray` + `top`，`LyQueue` = `LyArray` + 双游标 + 计数）。但**替换未执行且被明确推迟**，不要擅自把 queue/stack 改接到 array 上。
 
-**`lyvector` is deliberately standalone and must not depend on `lyarray`.** An earlier version composed vector over array; the owner required it to be independent. It therefore owns its own `buffer`/`capacity`/`item_size`/`size` and grows with `realloc`. Keep it that way. The tradeoff accepted here is duplicated growth logic in exchange for `realloc`'s in-place expansion.
+**`lyvector` 刻意独立，不得依赖 `lyarray`。** 早期版本曾把 vector 组合在 array 之上，作者要求它独立。代价是增长逻辑重复一份，换来 `realloc` 的原地扩张能力。
 
-**`lystream` and `lyqueue` must stay separate.** Their structs and cursor arithmetic look nearly identical because both are implemented over a ring buffer, which is the normal shared substrate industry-wide (compare Linux `kfifo`). But they sit at different levels of abstraction: a queue is a container that holds typed fixed-size elements, a stream is a transport for untyped bytes. The partial-transfer contract (`in`/`out` returning actual counts) is the stream-side signature and is correct as written. A previous suggestion to add `send_multi`/`receive_multi` to queue and retire stream was **withdrawn as wrong**. If stream is developed further, the direction is upward — source/sink callbacks so it can wrap a UART or file, plus EOF and error state — not more buffering features.
+**`lystream` 与 `lyqueue` 必须分开。** 两者的结构与游标运算几乎相同，因为都建立在环形缓冲上（业界常见的共享底座，参见 Linux `kfifo`），但处在不同抽象层级：队列是装类型化定长成员的容器，流是搬运无类型字节的通道。部分传输契约是流侧的签名特征。曾有人提议给 queue 加 `send_multi`/`receive_multi` 并废弃 stream，该提议**已被判定为错误并撤回**。若继续发展 stream，方向是向上——source/sink 回调以便包装 UART 或文件，加上 EOF 与错误状态——而不是增加缓冲功能。
 
-**A `lygroup` container (append-only batch abstraction) was built and then removed** at the owner's request. Its struct was field-for-field identical to `LyVector`, and its two static helpers were literal duplicates of vector's `vector_reserve_capacity`/`vector_locate_item` (both were then still named `_reserve_for`/`_item_address`). If a batch abstraction is wanted again, note that its only irreplaceable value over vector was type-level restriction (no `set`/`remove`, `const` returns, a callback that cannot tell members apart), not storage behavior.
+**`lygroup`（只追加的批量抽象）曾被建成又移除。** 它的结构与 `LyVector` 逐字段相同，两个静态辅助函数也是 vector 的字面复制品。若还想要批量抽象，注意它相对 vector 唯一不可替代的价值是类型层面的限制（没有 `set`/`remove`、`const` 返回、无法区分成员的回调），而不是存储行为。
 
 ## API And Ownership
 
-- Match the existing create/init and delete/destroy lifecycle for each container.
-- **`*_create_static` is currently uncallable from outside the library.** `LyArray_t`, `LyQueue_t`, `LyStack_t`, `LyStream_t`, and `LyPool_t` are incomplete types in the public header, so an external caller cannot write `LyStack_t s;` — it fails with `storage size isn't known`. Only `LyList_t` and `lytable` have their structs exposed. Resolving this needs a design decision (expose the structs, add a `*_sizeof()` accessor, or introduce opaque storage types) and affects every container, so raise it rather than fixing one container in isolation.
-- Containers with a static constructor carry an `is_static` flag, and their `delete` only unbinds caller-provided storage instead of freeing it. This applies to array, queue, stack, stream, and pool. Preserve this when touching cleanup paths.
-- `lylist_destroy` frees nodes but **not** the `list` handle itself, even though `lylist_create` mallocs it. This is intentional and documented: `struct LyList` is public, so a caller may stack-allocate it and freeing would crash. Heap-allocated lists therefore leak the handle by design — the caller frees it.
-- List, pool, table, and bucket APIs retain external `void *` pointers; do not assume ownership of caller-owned business objects. The table copies keys but does not free values.
-- Sets require caller-provided hash and equality callbacks. The callback types `Hash_t` and `Equals_t` are declared without a container prefix and sit in the global namespace.
-- Assertions are enabled by default. `LYDSS_ASSERT` may enter a debugger breakpoint/infinite loop on failure, so do not assume invalid input produces a normal error return. Public functions generally assert on null handles and validate indices with a normal `false`/`NULL` return.
-- Growth-capable containers (`vector`) guard `len * item_size` against `ULONG_MAX` overflow before allocating. `realloc` failure leaves the original buffer intact, so the handle stays usable. Keep both properties.
+- 沿用各容器既有的 create/init 与 delete/destroy 生命周期。
+- **`*_create_static` 目前从库外不可调用。** `LyArray_t`、`LyQueue_t`、`LyStack_t`、`LyStream_t`、`LyPool_t` 在公开头文件里都是不完整类型，外部写不出 `LyStack_t s;`（报 `storage size isn't known`）。只有 `LyList_t` 与 `lytable` 暴露了结构体。解决它需要一个影响所有容器的设计决策（公开结构体 / 增加 `*_sizeof()` / 引入不透明存储类型），**先提出来而不要只改一个容器**。
+- 支持静态构造的容器带 `is_static` 标志，其 `delete` 只解绑而不释放调用者内存。适用于 array、queue、stack、stream、pool，改动清理路径时要保留这个性质。
+- `lylist_destroy` 释放节点但**不释放 `list` 句柄本身**，即使 `lylist_create` 用了 malloc。这是刻意的：`struct LyList` 是公开类型，调用者可能栈分配它。堆上创建的句柄按设计由调用者自己 `free`。
+- list、pool、table、bucket 保留外部 `void *` 指针，不要假定拥有调用者的业务对象。table 拷贝键但不释放值。
+- set 的**哈希可为 NULL**（回退到 `set_hash_default`，按字节 FNV-1a，与 `lytable_create(NULL)` 一致），但**比较回调必须提供且无法有默认实现**：`Equals_t` 是 `bool (const void *a, const void *b)`，不带长度参数，库无从知道该比较多少字节。要修得改 `Equals_t` 签名，属破坏性 API 变更，未做。
+- 断言默认开启。`LYDSS_ASSERT` 失败会进入陷阱且不再返回，**不要指望非法输入会得到正常的错误返回**。公开函数一般对空句柄断言，而对下标越界用 `false`/`NULL` 返回。
+- 分配前对 `成员数量 × 成员大小` 的乘法溢出统一由 `lystore_bytes` 拦截（以 `SIZE_MAX` 为界）。`realloc` 失败时原缓冲区保持不变、句柄仍可用，这两个性质都要保留。
 
 ## Testing Status
 
-Only these test functions are wired into a runner and actually execute:
+十个容器都有接入并实际执行的用例。`LyDSS_AllBasicTest` 按容器规范顺序调用，每个都在自己的开关后面，并在调用前打印一行横幅说明将要展示的特性。`LyDSS_SimpleTest` 单独跑 `simple()`。
 
-- `simple()` — via `LyDSS_SimpleTest`
-- `pool_basic()`, `array_basic()`, `vector_basic()`, `stream_basic()` — via `LyDSS_AllBasicTest`
+每个用例刻意保持很小——创建、写入、读取、销毁，外加**一处体现该容器特性**的调用。它们仍是**打印式冒烟测试**：通过只意味着「没崩且返回 0」，不代表输出被校验过。
 
-These files compile but never run, and several are not functional:
+**不要把它们扩成穷举式的 API 覆盖**，也不要逐个函数讲解——曾经那样做过，作者要求退回。每个函数体保持 10–20 行。
 
-- `list_basic.c`, `set_basic.c`, `stack_basic.c` — have working functions, simply not called by any runner
-- `bucket_basic.c` — function body is empty
-- `table_basic.c` — file header only, defines no function
-- `queue_basic.c`, `stack_base_type.c` — entire body is inside a block comment and targets a removed older API (`queue_create`, `stack_push_multi`). Reviving them requires a rewrite, not just uncommenting.
+`test/simple.c` 与 `examples/run_simple_test.c` 是作者的草稿本，随时重写，**刻意不加任何门控**。后果：`simple.c` 当前用到的那个容器必须保持启用，否则两个可执行目标都编译失败（`simple.c` 既被 `LyDSS_SimpleTest` 显式列出，又通过 `test/*.c` 的 glob 进入 `LyDSS_AllBasicTest`）。这是「全部关闭」配置唯一构建不过的原因，其余开关组合都正常。**不要用加回门控的方式"修"它。**
 
-When writing print-based tests, **do not call a mutating function and read the mutated variable in the same `printf` argument list.** GCC evaluates arguments right-to-left, so the variable is read before the call executes and the test silently reports stale values. Assign to a local on a separate statement first. This mistake was made twice in this repository's history.
+写打印式用例时，**不要在同一个 `printf` 参数表里既调用改变状态的函数、又读取被它改变的值**。GCC 从右往左求值，会读到旧值或让前一个调用失效。拆成独立语句先存进局部变量。这个错误在本仓库历史上犯过三次。
 
-## Code Style
+## 项目特有的风格决定
 
-The authoritative style spec is [`references/c-style.md`](.agents/skills/c-code-review/references/c-style.md) inside the `.agents/skills/c-code-review` git submodule, with a matching `.clang-format` in that submodule's `assets/`. That submodule also ships a `c-code-review` skill that produces a graded (违规 / 警告 / 通过) audit against the spec — use it instead of inventing style rules, and treat the spec as the only basis for a judgement.
+以下是 `c-style.md` 未覆盖、或本项目刻意偏离的部分。**`c-style.md` 本身已有的规则不在此重复。**
 
-Comment *content* is governed separately by [`.agents/rules/code-comment/AGENTS.md`](.agents/rules/code-comment/AGENTS.md), a second submodule. `c-style.md` decides comment **syntax and placement**; the comment rule decides **what may be written**. Where they overlap, syntax follows `c-style.md`. The points that bite most often here:
+**容器顺序固定为：池、数组、动态数组、栈、队列、链表、流、表、集合、桶。** `inc/lydss_api.h` 的分节、`examples/run_all_basic_test.c` 的调用、`CMakeLists.txt` 的库声明与链接列表都按这个顺序，便于对照阅读。顺序是从最简单的存储原语向外排到复合容器，新容器按抽象层级插入而非追加到末尾。`c-style.md` 的顺序一节只管文件内部的元素排列，不覆盖容器之间的顺序，所以这是本地约定。
 
-- Comments are Chinese. Identifiers, API names and standard terms keep their usual spelling.
-- Public declarations must state purpose, parameters, return values **and failure conditions**. `@return LyArray_t` — restating the type — does not qualify; the whole header was swept once for this.
-- Implementation comments explain why and what breaks on modification, not what the line does. `// 添加新项` above an `if` is exactly what to delete.
-- No Agent reasoning, no design narrative, no decision logs in code. That belongs in this file. An earlier revision of `lydss_priv.h` and `lyvector.c` carried multi-paragraph rationale with byte counts; it was cut down to the constraints a maintainer must not violate.
-- No context-free `TODO`. Either state problem, impact and the actionable fix, or delete it — `// TODO: 找不到？` was noise because returning `NULL` was already the right answer.
-- Known-but-unfixed risks *should* be commented at the site, with their impact. The 255-entry bucket truncation, `lypool_post` dropping silently, the float load factor and `LYLIST_FOREACH`'s delete hazard all now carry such notes.
+**文件私有的静态辅助函数不带前导下划线**，命名为 `<容器>_<动词>_<名词>`（公开函数结构去掉 `ly` 前缀）。当前全部：`lyvector.c` 的 `vector_reserve_capacity`/`vector_resize_buffer`、`lybucket.c` 的 `bucket_dup_memory`、`lyset.c` 的 `set_hash_default`、`lytable.c` 的 `table_hash_default`/`table_resize_slots`；其余源文件没有静态辅助函数。
 
-Two conflicts with the comment rule are resolved in favour of existing project convention, per that rule's own priority 1: the `/* ---- 名称 ---- */` section separators stay (they predate the rule and the file-ordering convention depends on them), and function header comments stay on every function in `.c` files even when `@brief` adds little, because `c-style.md` mandates them. `src/lypool.c`'s author banner and both files' MIT license text are the author's own content and are left untouched.
+`c-style.md` 把 `_id_do_thing_sub()` 留给句柄注册接口函数（元方法），`_id_do_register()` 留给寄存器操作。普通文件私有辅助函数两个角色都不是，**不得借用这个标记**。早期代码曾用 `_memdup` 之类的命名，那是错的，已全部改正。
 
-Beware `-Wcomment`: a `/*` sequence inside a block comment warns. Writing a glob like `test/*.c` inside `/** */` breaks the warning-free build.
+**以下三处刻意偏离 `c-style.md`，不要"修正"：**
 
-That `.clang-format` is **not** copied to the repository root, so nothing is auto-formatted today (see Known Repository Limitations). And even when it is used, it covers only the mechanizable rules: brace placement for `switch`, `while(1)`, `inline`, and metamethods, plus every naming and file-ordering rule, has to be checked by reading.
+- **局部变量用完整单词而非首字母缩写。** 规范把局部变量列在首字母缩写场景，但代码写 `array`、`vector`、`new_len`、`hash`，可读性优先。`idx` 与 `cur` 是实际在用的截断形式。新代码跟随周围文件。
+- **查询函数省略动词。** 规范的结构是 标识 + 动词 + 名词（即 `lyarray_get_length`），而 API 提供的是 `lyarray_length`、`lyvector_size`、`lyset_count`。改名是破坏性 API 变更且无行为收益，新增访问器沿用这个无动词形式，不要引入第二种风格。
+- **枚举成员名在前缀之后全大写**（`LySetRelation_NONE`），而规范示例是帕斯卡。两个枚举一致，保持。
 
-### Conformant and settled
+`/* ---- 名称 ---- */` 分节线保留。它早于 code-comment 规则存在，且文件顺序约定依赖它——按该规则自身的优先级 1（项目既有强制规范优先）裁决。`src/lypool.c` 的作者横幅与各文件的 MIT 许可文本是作者本人内容，不要删改。
 
-- Four-space indent, no tabs. Verified: `src/` and `inc/` contain zero tab characters.
-- `if`/`else`/`for`/`while()`/`do` open the brace on the same line; `switch` and `while(1)` break first. Live examples: `src/lybucket.c:88` (`switch`), `inc/lydss_api.h:29` (`while(1)` inside `LYDSS_ASSERT`).
-- Plain functions break before `{`. No `inline` function and no metamethod exists yet, so the same-line exception is currently unused.
-- `/** */` Doxygen blocks for file headers and for the public function declarations in `inc/lydss_api.h`; `///` for function headers inside `.c` bodies; `///<` for trailing member comments.
-- `.c` layout follows the spec's order exactly: file header comment, includes, macros, struct definition, static forward declarations, public functions, then static implementations behind a `/* --------------------------------- static --------------------------------- */` separator. `src/lyvector.c` is the cleanest reference. Include order is 本模块头文件 → 标准库, i.e. `"../inc/lydss_api.h"` first — see Feature Gating for why.
-- **Container order in `inc/lydss_api.h` is fixed: pool, array, vector, stack, queue, list, stream, table, set, bucket.** Each container is a block introduced by a `/* ---- 名称 ---- */` separator. The order runs from the simplest storage primitive outward to the composite containers, and `examples/run_all_basic_test.c` calls its tests in the same order (including the commented-out entries) so the two files can be read side by side. A new container goes at the position its abstraction level implies, not at the end. The spec's 顺序 section does not cover inter-container order, so this is a local convention.
-- Header guards are `文件名_H`: `LYDSS_API_H`, `LYDSS_CFG_H`. Never `__LYDSS_API_H__` — `_`/`__` prefixes are the compiler's reserved namespace.
-- Types are `struct Ly<Name>` in Pascal case, exposed through a `typedef ... Ly<Name>_t` forward declaration in the header. Enum members carry the `枚举名_` prefix (`LySetRelation_NONE`, `LyBucketMetaType_COPY`).
-- Abbreviation strength tracks scope as the spec requires: parameters use truncated forms (`buf`, `len`, `obj`), struct members are spelled out (`buffer`, `length`, `item_size`, `capacity`, `is_static`), function and macro names are never abbreviated.
-- Return conventions are both legal under the spec, which defines two separate schemes: `bool`/`NULL` is a 逻辑返回值 (1 true / 0 false), while `int` 0-success / non-zero-error is an 错误处理返回值. So `lytable_set` returning `int` is a *consistency* complaint, not a style violation — see API surface inconsistencies below.
+**注意 `-Wcomment`**：块注释内出现 `/*` 序列会告警。在 `/** */` 里写 `test/*.c` 这样的通配符会破坏零告警状态。
 
-### File-private static helpers carry no leading underscore
+## Working Agreement
 
-Static helpers are named `<container>_<verb>_<noun>` — the public function structure minus the `ly` prefix. Current set:
+- **本文件是项目规则的唯一来源**（`.agents/` 覆盖的领域除外）。没有 spec 目录：单人探索型项目，作者选择一份持久文档而不是按特性拆分的需求/设计/任务产物。不要重建 `.kiro/specs/` 或引用它。
+- 开发是对话式、增量的。会话中产生新的规则、约束或决定时，**当场追加到本文件**，不要推迟，也不要塞进一次性的计划文档。
+- **记录决定时连同理由一起记。** Architecture Decisions 一节存在的原因就是这些问题已经定过一次；没有理由它们会被重新翻出来。
+- `out/` 与 `build/` 属于构建工具链，只做输出目录——**绝不要往里面写源文件、探针或临时代码**。需要持久保留的探针源码放进仓库正式位置（构建期检查放 `cmake/`，运行期用例放 `test/`）。
+- `.cache/clangd/` 是 clangd 的符号索引，自动生成、可安全删除，不属于项目。
+- `.kiro/` 下有 skill 的第二份副本，被 gitignore，属工具而非项目内容，不要动。
 
-| File | Static helpers |
-|---|---|
-| `lyarray.c` | `array_locate_item` |
-| `lyvector.c` | `vector_reserve_capacity`, `vector_resize_buffer`, `vector_locate_item` |
-| `lybucket.c` | `bucket_dup_memory` |
-| `lytable.c` | `table_hash_default`, `table_resize_slots` |
+## Known Duplication（已审计，未处理）
 
-`lyarray.c` and `lyvector.c` lost their `*_locate_item` helpers to the base layer, so `lylist.c`, `lypool.c`, `lyqueue.c`, `lyset.c`, `lystack.c`, `lystream.c` and now `lyarray.c` have no static helpers at all.
+一次针对结构体布局与核心抽象的审计发现以下重复。除移除 `lygroup` 外都未处理。
 
-The shared base layer uses its own namespaces, `lystore_*` / `lyring_*` / `LYDLIST_*` / `LYSLIST_*` — see Internal Base Layer. Its `inline` functions put `{` on the same line, per the spec's exception for `inline`; plain functions in `src/` still break before `{`.
+- **pool、bucket、table 是同一件事（名字到指针的映射）的三种实现。** `lypool_post`/`get`/`clear`、`lybucket_put`/`get`/`erase`、`lytable_set`/`get`/`remove` 是同一套操作。pool 最弱：线性扫描、容量固定、溢出静默丢弃；它唯一的独特之处是零额外分配且不拷贝键。
+- **set 与 table 都是链式哈希表**，布局同构（槽位数组 + 单链节点）。各有对方缺的能力：set 借回调泛型化但从不 rehash，table 只支持字符串键但会在负载 0.75 时增长。
+- **set 与 table 的 `size` 含义相反。** `LySet` 里 `size` 是槽位数、`count` 是元素数；`lytable` 里 `capacity` 是槽位数、`size` 是元素数。读或合并两者时极易出错。
+- **`lybucket.c` 的文件头注释声称核心是「list + table」，但代码里没有任何哈希。** `lybucket_get` 沿双向链表做 `strcmp`。它目前是个命名链表，注释描述的是未实现的设计。
 
-**Do not add a leading underscore.** The spec reserves `_id_do_thing_sub()` for handle-registration interface functions (metamethods, which may only be `static`) and `_id_do_register()` for register access. A plain file-private helper fills neither role and must not borrow the marker. An earlier revision of this codebase used `_memdup`/`_item_address`/`_reserve_for` and an earlier revision of *this document* recorded that as the house convention; both were wrong against the spec, and the code has since been renamed — `_memdup` is now `bucket_dup_memory`. Every entry below that once cited an underscored name has been updated.
+## Verified Defects（未解决）
 
-### Accepted deviations
+每条都经过读码确认。**行号会漂移，编辑前先重新检索**；定位优先用函数名。
 
-These differ from the spec and are kept deliberately. Do not "fix" them.
+### 嵌入式移植阻塞项
 
-- **Local variables use whole words, not initials.** The spec files local variables under 首字母缩写; the code writes `array`, `vector`, `new_len`, `new_buffer`, `hash`. Readability was preferred over abbreviation strength. `idx` and `cur` are the truncated forms actually in use. New code should match the surrounding files, not the spec's letter on this point.
-- **Query functions omit the verb.** The spec's structure is 标识 + 动词 + 名词, which would give `lyarray_get_length`. The API ships `lyarray_length`, `lyarray_item_size`, `lyvector_size`, `lyvector_capacity`, `lyset_count`. Renaming them is a breaking public API change with no behavioral gain. New accessors follow the established verbless form rather than introducing a second style.
-- **Enum member names are upper-case after the prefix** (`LySetRelation_NONE`), where the spec's only example is Pascal (`UserInfo_BaseID`). Consistent across both enums in the header; keep it.
+这几条会让库在真实嵌入式目标上无法构建或运行，优先级高于风格问题。
 
-### Open style violations
+- **`LYDSS_ASSERT` 里硬编码了 `__asm("int3")`**（`inc/lydss_api.h`）。这是 x86 专属指令，ARM 或 RISC-V 构建直接编译失败。陷阱动作需要改成可替换的宏，并给一个架构中立的默认实现。
+- **`LYDSS_PRINTF` 仍硬绑到 `printf`**（`inc/lydss_api.h`）。一半已修：`<stdio.h>` 的包含在 `lydss_cfg.h` 里被 `#if LYDSS_ASSERT_ENABLED` 包住，关掉断言就不再引入 stdio。剩下的是：想要断言但没有 `printf` 的目标无法重定向输出，`LYDSS_PRINTF` 需要和其他开关一样的 `#ifndef` 待遇。
+- **`lytable.c` 用浮点判定负载因子**：`(double)table->size / table->capacity >= LOAD_FACTOR`。无 FPU 的目标会为这一次比较链入软浮点运行时。**显而易见的整数改写是错的**：`size * 4 >= capacity * 3` 在 32 位上溢出，条件永假，表会**静默停止扩容**——一个没有任何报错的性能悬崖。应改用 `size >= capacity - capacity / 4` 这类除法形式，槽位数从 16 起倍增、恒为 4 的倍数，因此精确。
 
-- **Trailing comment form is inconsistent inside the public header.** `enum LySetRelation` members (`inc/lydss_api.h:508`–`:512`) use end-of-line `/* ... */`, while `struct LyBucketMeta` members (`:607`–`:609`) use the spec's `///<`. Convert the enum to `///<`.
-- **`cell_t`, `Hash_t`, and `Equals_t` (`inc/lydss_api.h:385`, `:517`, `:518`) are unprefixed**, and `cell_t` is all lower case where the spec puts `typedef`'d types in Pascal case. `LyTableHash_t` (`:451`) shows the intended form. The collision risk is tracked separately under API surface inconsistencies.
-- **`Hash_t` and `Equals_t` are typedef'd as function *types*, not function pointers**, which is why every use has to spell `Hash_t *hash`. 规范未覆盖 — flagged as a warning only, but it is the reason the set API reads oddly.
+### 参数校验缺失
 
-## Change Guidance
+- **`lyqueue_create` 与 `lystack_create` 断言了 `item_size` 但从不断言 `len`**，而 `lyarray_create`/`create_static` 断言了——三者不一致，array 是对的。后果并非除零（`send` 在 `count >= length` 时提前返回，取模不可达），而是更安静：零长度的队列或栈会构造成功，然后永久同时为空且为满，所有 `send`/`push`/`receive`/`pop` 都返回 `false`，`is_empty()` 与 `is_full()` 同时为 `true`，没有任何东西报告参数有问题。
+- **`lyset_init` 断言了 `elem_size` 但没有校验槽位数——这一条是真的除零。** 与队列和栈不同，`lyset_add`/`remove`/`contains` 计算 `% set->size` 之前没有任何守卫，`lyset_init(0, ...)` 能成功，第一次操作就是未定义行为。
+- **`lypool_create` 对 `size` 什么都不校验。** 同类漏洞：零容量的池创建成功、不接受任何对象，且 `lypool_post` 把每一个都静默丢弃。
 
-- Make small, local changes that preserve public APIs unless the task explicitly requires an API change.
-- Read the matching implementation, public declarations, and nearest test before editing. Add a focused regression or smoke test when behavior changes.
-- When evaluating a new container, first clarify its element model, core operations, ownership, capacity rules, and deletion behavior; then compare that contract against the table above. Check specifically whether the proposed struct is field-for-field equivalent to an existing one — that happened with group versus vector.
-- Do not use the legacy `examples/RedPandaIDE/makefile.win` as the primary build entry point. It is kept in sync by hand and lists only a subset of sources.
-- Verify with `-Wall -Wextra` after edits. `src/` is currently warning-free under those flags; keep it that way. When a failure is caused by existing test wiring, report it separately rather than masking it with unrelated changes.
-- Run the `c-code-review` skill over the files you touched before calling a change done, and judge only against [`references/c-style.md`](.agents/skills/c-code-review/references/c-style.md). If the result conflicts with something already listed under Code Style → Accepted deviations, the accepted deviation wins. If you introduce a new intentional deviation, append it there in the same session instead of leaving it for the next audit to rediscover.
+### 所有权与正确性
 
-## Known Duplication (Audited, Unresolved)
+- **`lybucket_remove` 返回的节点永远无法释放。** 它摘链后返回节点但不释放，而 `lybucket_erase` 是唯一会释放节点及其元数据副本的代码，且只对自己摘下的节点这么做。于是文档所说的「摘下但不销毁」路径没有出口——调用者拿着内存却没有 API 可以归还。缺一个 `lybucket_free_node` 之类的函数。
+- **`lybucket_get` 的循环用 `i < bucket->count` 作额外边界。** 这个边界是冗余的（链表本就以 `NULL` 结尾），而且一旦 `count` 饱和就变成截断缺陷——`count` 是 `uint8_t`，超过 255 项后检索不到条目。从循环条件里去掉计数器即可修复，与是否加宽字段无关。
+- **`lybucket_patch_meta` 先释放再分配。** 先 `free` 旧的 `meta.data` 再调用 `bucket_dup_memory`，分配失败时旧元数据已经丢了。应当先分配成功再释放旧的。
+- **`bucket_dup_memory` 对合法输入触发断言。** 它断言 `size` 非零，但 `put`/`post`/`insert` 在 `meta.type != NULL` 而 `meta.size == 0` 时就会走到这里。零长度的拷贝应当被视作「无元数据」，而不是编程错误。
+- **`LYLIST_FOREACH` 没有安全变体。** 在循环体内删除当前节点是未定义行为，因为宏在循环体执行完之后才读 `node->next`。常规修法是提供一个先缓存后继再执行循环体的变体。
+- **`lypool` 对重名有三种互不一致的处理。** `lypool_post` 填第一个空槽而不查重，`lypool_get` 返回第一个匹配，`lypool_clear` 清掉**所有**匹配（循环没有提前退出）。无论意图是哪种，这三者应当一致。
 
-An audit of struct layouts and core abstractions found the following. None of it has been acted on except the group removal.
+### API 一致性
 
-- **pool, bucket, and table are three implementations of a name-to-pointer map.** `lypool_post`/`get`/`clear`, `lybucket_put`/`get`/`erase`, and `lytable_set`/`get`/`remove` are the same operation set. Pool is the weakest of the three: linear scan, fixed capacity, and it silently discards on overflow. Its only distinguishing traits are zero extra allocation and not copying the key.
-- **set and table are both chained hash tables** with isomorphic layouts (bucket array plus singly-linked nodes). They differ in which strengths they have: set is generic over element type via caller callbacks but never rehashes; table is string-keyed only but grows at load factor 0.75.
-- **`set` and `table` use `size` with opposite meanings.** In `LySet`, `size` is the bucket count and `count` is the element count. In `lytable`, `capacity` is the bucket count and `size` is the element count. This is an easy source of error when reading or merging the two.
-- **`lybucket.c`'s header comment claims a "list + table" core, but no hashing exists.** `lybucket_get` walks the doubly-linked list doing `strcmp`. It is currently a named linked list; the comment describes an unimplemented design.
-- `LyBucket.count` is `uint8_t`, capping a bucket at 255 entries while the API suggests no such limit. The field width is only half the problem — see Verified Defects for the search truncation it causes.
-
-## Verified Defects (Unresolved)
-
-Every entry below was confirmed by reading the cited line, and all line numbers were re-verified against the current tree during the style audit. Line numbers still drift — re-grep before editing.
-
-Three entries that used to live here were verified fixed and removed. They are listed so nobody re-files them:
-
-- **`<malloc.h>` in `lyqueue.c`/`lyset.c`/`lystack.c`** — gone. All three now include only `<stdlib.h>` (`:14`, `:13`, `:13`).
-- **Hash-index narrowing in `lyset.c`** — fixed. `lyset_add` (`:63`), `lyset_remove` (`:98`), and `lyset_contains` (`:190`) all hold the index in `size_t idx` now.
-- **Leading-underscore static helpers** — renamed. See Code Style.
-
-Three more were resolved by the base-layer work (see Internal Base Layer):
-
-- **Inconsistent overflow-guard strength** — unified. `lyarray`, `lyvector`, `lystack`, `lyqueue`, and `lystream` all now go through `lystore_bytes`, which rejects the multiplication before allocating. The guard is written against `SIZE_MAX` rather than `ULONG_MAX`: on this 32-bit target the two are identical, and `SIZE_MAX` cannot mis-judge on an ABI where `unsigned long` is narrower than `size_t`. This supersedes the earlier "keep the `ULONG_MAX` guards" note — the strength is preserved, the type is just correct now. `lyvector` still keeps its own `ULONG_MAX` check on the *doubling factor*, which is about the capacity count and not a byte product.
-- **`lystream_create` allocating without a guard** — fixed. It now validates `size * sizeof(cell_t)` and separately checks that adding `sizeof(LyStream_t)` cannot wrap, so the single-allocation layout can no longer yield a short buffer.
-- **`lybucket_remove_node` leaving `prev`/`next` dangling** — fixed by `LYDLIST_UNLINK`.
-
-One defect was *found* while re-running the gating matrix after the refactor, and fixed:
-
-- **`examples/run_simple_test.c` called `simple()` without gating it** while `test/simple.c` gates its body on `LYDSS_STACK_ENABLED`, so any build with `-DLYDSS_STACK_ENABLED=0` failed to link with `undefined reference to 'simple'`. The guard was present when the feature-gating work was verified but is absent in commit `3f1773f`, so it was lost somewhere between verification and commit. `run_all_basic_test.c` was unaffected. **Lesson: a gated test function and its call site must be changed together**; re-run the all-off configuration after touching either.
-
-### Embedded portability blockers
-
-These prevent the library from building or running on a real embedded target, so they outrank the cosmetic items.
-
-- **`inc/lydss_api.h:31` hardcodes `__asm("int3")`** inside `LYDSS_ASSERT`. That is an x86-only instruction; an ARM or RISC-V build fails to compile. The trap action needs to be a replaceable macro with an architecture-neutral default.
-- **`LYDSS_PRINTF` is still hardwired to `printf`** at `inc/lydss_api.h:23`. Half of this is now fixed: the `<stdio.h>` include in `inc/lydss_cfg.h` sits inside `#if LYDSS_ASSERT_ENABLED`, so a target that builds with `-DLYDSS_ASSERT_ENABLED=0` no longer drags in stdio (verified to build clean). What remains is that a target which *wants* assertions but has no `printf` cannot redirect the output — `LYDSS_PRINTF` needs the same `#ifndef` treatment as the other switches so a caller can supply their own sink.
-- **`src/lytable.c:66` uses floating point to test the load factor**: `(double)table->size / table->capacity >= LOAD_FACTOR`, with `LOAD_FACTOR 0.75` at line 18. On an FPU-less target this links in the soft-float runtime for one comparison. **The obvious integer rewrite is wrong on this target:** `size * 4 >= capacity * 3` overflows 32-bit `size_t`, the comparison becomes permanently false, and the table then *silently stops growing* — a performance cliff with no error. Use a division form such as `size >= capacity - capacity / 4`, which is exact here because the bucket count starts at 16 and only ever doubles, so it is always a multiple of 4.
-
-### Missing parameter validation
-
-- **`src/lyqueue.c:34` and `:62`, `src/lystack.c:32` and `:58` assert `item_size` but never `len`.** `src/lyarray.c:35` and `:62` *do* assert `len` — the three containers are inconsistent, and array is the one that is right. **Correction to an earlier version of this entry:** it claimed `len == 0` makes the queue divide by zero at `% queue->length`. That is wrong. `lyqueue_send` returns early on `count >= length` (`:80`), and `receive`/`peek` return early on `count == 0`, so the modulo is unreachable when `length == 0`. The real consequence is quieter and applies to both containers: a zero-length queue or stack is constructed successfully and is then permanently both empty **and** full — every `send`/`push` returns `false`, every `receive`/`pop` returns `false`, and `is_empty()` and `is_full()` both return `true`. Nothing reports the bad argument. Re-verified by reading both files in full.
-- **`src/lyset.c:36` asserts `elem_size` but not the bucket count — this one *is* a real divide by zero.** Unlike queue and stack, `lyset_add` (`:63`), `lyset_remove` (`:98`) and `lyset_contains` (`:190`) compute `% set->size` with no prior guard, so `lyset_init(0, ...)` succeeds and the first operation is undefined behavior.
-- **`lypool_create` (`src/lypool.c:69`) asserts nothing about `size`.** Same class of hole; a zero-size pool is created successfully, accepts no objects, and `lypool_post` drops every one of them silently.
-
-### Ownership and correctness
-
-- **A node returned by `lybucket_remove` can never be freed.** `lybucket_remove` (`src/lybucket.c:188`) unlinks via `lybucket_remove_node` (`:205`), clears the node's own `prev`/`next`, and returns it *without* freeing. `lybucket_erase` (`:231`) is the only code that frees a node and its meta copy, and it does so on a node it removed itself. So the documented "remove but do not free" path has no exit — the caller holds memory with no API to release it. A `lybucket_free_node`-style function is missing. (The secondary half of this entry — `lybucket_remove_node` leaving `prev`/`next` dangling — is now fixed: `LYDLIST_UNLINK` clears them, so the node is self-consistent at whichever level it is unlinked.)
-- **`src/lybucket.c:122` bounds the search with `i < bucket->count`.** The bound is redundant — the list already terminates on `NULL` — and it turns into a truncation bug as soon as `count` saturates, since `count` is `uint8_t` (`:45`). Past 255 entries `lybucket_get` stops finding things. Removing the counter from the loop condition fixes the search independently of widening the field.
-- **`lybucket_patch_meta` (`src/lybucket.c:164`) frees before it allocates.** `:172` frees the old `meta.data`, then `:177`/`:178` call `bucket_dup_memory`. If that allocation fails the old metadata is already gone. Allocate first, then free.
-- **`bucket_dup_memory` traps on a legitimate input.** It asserts a non-zero `size` (`src/lybucket.c:382`), but `put`/`post`/`insert` reach it whenever `meta.type != NULL` and `meta.size == 0` (`:91`, `:281`, `:333`). A zero-size copy should be treated as "no metadata", not as a programming error.
-
-- **`LYLIST_FOREACH` (`inc/lydss_api.h:381`) has no safe variant.** Deleting the current node inside the loop is undefined behavior, because the macro reads `node->next` after the body has run. A variant that caches the successor before the body is the usual fix.
-- **`lypool` handles duplicate names three different ways.** `lypool_post` (`src/lypool.c:107`) fills the first free slot without checking for an existing entry of the same name; `lypool_get` (`:123`) returns the first match; `lypool_clear` (`:140`) clears *every* matching slot, since its loop has no early exit. Whatever the intended rule is, these three should agree on it.
-
-### API surface inconsistencies
-
-- **`lypool_post` returns `void` and drops silently when full** (`src/lypool.c:107`, with the `TODO` at `:119`). The caller cannot detect the failure. Returning `bool` is purely additive — code that ignores the result still compiles.
-- **`lypool_get` and `lypool_clear` carry stale `// TODO: 找不到？` comments** at `:134` and `:152`, although returning `NULL` and doing nothing are already well-defined answers. These are noise, not open questions.
-- **`lyset_init` breaks the `_create` convention** every other container follows.
-- **`cell_t`, `Hash_t`, and `Equals_t` sit in the global namespace with no `Ly` prefix** (`inc/lydss_api.h:385`, `:517`, `:518`). `cell_t` in particular is a name likely to collide with application code. `LyTableHash_t` (`:451`) is the same kind of callback typedef done right. See Code Style → Open style violations for the casing side of this.
-- **`lystream_clean` is spelled differently from the `clear` used by queue, stack, vector, and pool.**
-- **`lytable_set` returns `int` (0 / -1)** while the rest of the library signals failure with `bool` or `NULL`. Both forms are sanctioned by the style spec (逻辑返回值 vs 错误处理返回值), so this is a consistency choice to settle, not a style violation to fix. Pick one scheme library-wide and say so here.
+- **`lypool_post` 返回 `void`，满时静默丢弃**，调用者无法察觉失败。改成返回 `bool` 是纯增量修改，忽略返回值的既有代码仍能编译。
+- **`lypool_get` 与 `lypool_clear` 残留 `// TODO: 找不到？` 注释**，而返回 `NULL` 和什么都不做本来就是定义明确的答案。这是噪声，不是待解决的问题。
+- **`lyset_init` 违反了其他容器都遵守的 `_create` 命名惯例。**
+- **`cell_t`、`Hash_t`、`Equals_t` 位于全局命名空间且没有 `Ly` 前缀。** `cell_t` 尤其容易与应用代码撞名。`LyTableHash_t` 是同类回调 typedef 的正确写法。此外 `Hash_t` 与 `Equals_t` 被 typedef 成函数**类型**而非函数指针，所以每次使用都要写 `Hash_t *hash`。
+- **`lystream_clean` 的拼写与 queue/stack/vector/pool 用的 `clear` 不一致。**
+- **`lytable_set` 返回 `int`（0 / -1）**，而库内其余部分用 `bool` 或 `NULL` 表示失败。两种形式都被 `c-style.md` 认可（逻辑返回值 vs 错误处理返回值），所以这是待统一的一致性选择，不是风格违规。定下一种并记在这里。
+- **公开头文件里 `enum LySetRelation` 的成员用行尾 `/* ... */` 注释，而 `struct LyBucketMeta` 的成员用 `///<`。** 同一文件两套写法，应统一为 `///<`。
 
 ## Known Repository Limitations
 
-- `CMakePresets.json` is absent and gitignored, so preset-based build instructions cannot work as written.
-- CMake declares no public include directories; sources reach the header by relative path. An external consumer cannot `#include <lydss_api.h>` without additional configuration.
-- **No `.clang-format` at the repository root**, so formatting is not actually enforced. The only copies live in the skill's `assets/` (`.agents/skills/c-code-review/assets/.clang-format` and the `.kiro/` copy). Copying one to the root would make `clang-format` pick it up automatically; until then, brace and indent rules are honored by hand.
-- `examples/RedPandaIDE/RedPandaIDE.layout` is a Red Panda editor cache still holding another machine's absolute paths (`C:/Users/wzyde/...`). It is tracked because the `.gitignore` rules for it point at `dev/RedPandaIDE/*` while the files actually live in `examples/RedPandaIDE/`. Fixing the ignore paths would untrack these caches.
-- `lypool_create_static` has an implementation in `src/lypool.c:91` but its declaration is commented out in the public header (`inc/lydss_api.h:64`).
-- [`README.md`](README.md) is no longer a placeholder. It documents each container's applicability and characteristics plus two comparison tables (the owner's 14 axes, and a supplementary 6 covering capacity model, lookup cost, member ownership, address stability, required callbacks, and full/failure behavior). Every cell was derived by reading the implementation, and the footnotes deliberately record the known defects that affect usage choices (bucket's 255 cap, `lypool_post` dropping silently, set never rehashing, static constructors being uncallable from outside). **It has no clone/build section yet** — the owner deferred that. When behavior changes, update the README table in the same session; a wrong table there is worse than no table. The headers and implementations remain authoritative for exact signatures.
+- `CMakePresets.json` 缺失且被 gitignore，基于 preset 的构建说明无法照着执行。
+- CMake 没有声明公开的 include 目录，源文件靠相对路径找头文件。**外部消费者无法 `#include <lydss_api.h>`。** 若要修，必须只导出 `lydss_api.h` 与 `lydss_cfg.h`（见 Internal Base Layer）。
+- **根目录没有 `.clang-format`**，所以格式并未被自动强制。唯一的副本在 skill 的 `assets/` 里。复制一份到根目录即可让 clang-format 自动生效；在那之前缩进与大括号靠手工维持。`.editorconfig` 与 `.gitattributes` 已在根目录就位。
+- `examples/RedPandaIDE/RedPandaIDE.layout` 等是 Red Panda 的编辑器缓存，仍带着另一台机器的绝对路径。它们被跟踪是因为 `.gitignore` 的对应规则指向 `dev/RedPandaIDE/*`，而文件实际在 `examples/RedPandaIDE/`。修正忽略路径即可让这些缓存脱离版本控制。
+- `lypool_create_static` 在 `src/lypool.c` 有实现，但公开头文件里的声明被注释掉了。
+- 不要把 `examples/RedPandaIDE/makefile.win` 当作主构建入口。它靠手工同步，且只列了一部分源文件。
+- [`README.md`](README.md) 已不是占位文件。它逐个说明容器的适用场景与特征，并有一张 19 个特征列的对比表（外加容器名列）加 15 条脚注，每个格子都是读实现得出的，脚注刻意记录了影响选型的已知缺陷。**它还没有克隆与编译章节**，作者暂时搁置。行为变化时**当场同步 README 的表**——错的表比没有表更有害。精确签名仍以头文件和实现为准。
