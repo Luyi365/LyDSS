@@ -34,7 +34,7 @@
 | 领域 | 读这里 |
 |---|---|
 | C 代码风格（缩进、大括号、命名、缩写、文件与函数顺序、注释语法） | [`.agents/skills/c-code-review/references/c-style.md`](.agents/skills/c-code-review/references/c-style.md)，审查流程见同目录 `SKILL.md`，格式化配置见 `assets/.clang-format` |
-| 注释内容（写什么、不写什么、精简程度） | [`.agents/rules/code-comment/AGENTS.md`](.agents/rules/code-comment/AGENTS.md) |
+| 注释内容（写什么、不写什么、精简程度） | [`.agents/rules/code-comment.md`](.agents/rules/code-comment.md) |
 | Git 配置、子模块、行尾与 `.gitattributes` | [`.agents/skills/git-doctor/SKILL.md`](.agents/skills/git-doctor/SKILL.md) |
 | `.editorconfig` | [`.agents/skills/editorconfig-doctor/SKILL.md`](.agents/skills/editorconfig-doctor/SKILL.md) |
 
@@ -74,7 +74,7 @@ CTest 跑两个可执行目标：`LyDSS_SimpleTest` 与 `LyDSS_AllBasicTest`，�
 
 ## Feature Gating
 
-每个容器都能单独裁剪。[`inc/lydss_cfg.h`](inc/lydss_cfg.h) 为十一个容器各定义一个开关（`LYDSS_POOL_ENABLED` … `LYDSS_BUCKET_ENABLED`，排列顺序与 `lydss_api.h` 的分节一致），非 0 启用、`0` 裁剪。默认除桶外全为 1；**桶默认为 0**，验证时记得另跑一次 `-DLYDSS_BUCKET_ENABLED=1`，否则它根本不参与编译。
+每个容器都能单独裁剪。[`inc/lydss_cfg.h`](inc/lydss_cfg.h) **按模块分节**（不按功能分节），排列顺序与 `lydss_api.h` 的分节一致；每节放该模块的全部配置：`LYDSS_<模块>_ENABLED`，以及适用时的 `LYDSS_<模块>_STATIC_ENABLED` 与模块专属参数（如流的 `LYDSS_STREAM_CELL_TYPE`）。新增配置项放进所属模块的节里，不要另开功能节。非 0 启用、`0` 裁剪。默认除桶外全为 1；**桶默认为 0**，验证时记得另跑一次 `-DLYDSS_BUCKET_ENABLED=1`，否则它根本不参与编译。
 
 所有开关（含 `LYDSS_ASSERT_ENABLED`）都包在 `#ifndef` 里，因此命令行上的 `-DLYDSS_SET_ENABLED=0` 优先于头文件默认值。**这是配置本库的推荐方式**，不要为了改配置去编辑头文件。
 
@@ -136,7 +136,7 @@ vector 把 `capacity` 映射到 `store.length`，没有独立的容量字段。�
 | pingpong | 定长值拷贝，两块等长缓冲轮换 | 拷贝值 | 固定，两块等长 | 有 |
 | queue | 定长值拷贝，环形 FIFO | 拷贝值 | 固定 | 有 |
 | stack | 定长值拷贝，LIFO | 拷贝值 | 固定 | 有 |
-| stream | `cell_t`（unsigned char）字节，环形 FIFO | 拷贝字节 | 固定 | 有 |
+| stream | `cell_t` 单元（默认 `unsigned char`，由 `LYDSS_STREAM_CELL_TYPE` 配置），环形 FIFO | 拷贝单元 | 固定 | 有 |
 | set | 定长值拷贝，链式哈希 | 拷贝值，比较回调由调用者提供 | 槽位固定，不 rehash | 无 |
 | table | 拷贝键字符串，存值指针 | **不释放值** | 负载 0.75 时增长 | 无 |
 | pool | 存 `name` 与对象指针，线性扫描 | 两者都不拥有 | 固定，满时 `post` 返回 `false` | 有 |
@@ -188,6 +188,8 @@ vector 把 `capacity` 映射到 `store.length`，没有独立的容量字段。�
 - 沿用各容器既有的 create/init 与 delete/destroy 生命周期。
 - 静态构造的用法与约束见 Architecture Decisions 里 FreeRTOS 做法一条。`test/stack_basic.c` 用静态构造创建第一个栈，是 CTest 里唯一覆盖这条路径的用例，保留它。
 - 支持静态构造的容器带 `is_static` 标志，其 `delete` 只解绑而不释放调用者内存。适用于 array、queue、stack、stream、pool、pingpong，改动清理路径时要保留这个性质。
+- **静态构造按容器各自受 `LYDSS_<容器>_STATIC_ENABLED` 控制**（默认 1，池、数组、乒乓缓冲、栈、队列、流各一个）。曾做成全局的 `LYDSS_STATIC_ENABLED`，作者要求改为逐容器设置，不要改回。关闭后头文件不再声明该容器的 `Ly<容器>Static_t` 与 `create_static`，句柄去掉 `is_static`、`delete` 去掉静态分支。每个 `.c` 里有五处同一开关：`is_static` 成员、`_Static_assert`、`create` 里的 `is_static = false`、整个 `create_static`、`delete` 的静态分支；改动静态构造时五处一起看。关闭后句柄在 i686 上各省 4 字节，乒乓缓冲除外（`is_static` 原本与 `fill` 共用一个对齐字）。
+- **`cell_t` 由 `LYDSS_STREAM_CELL_TYPE` 决定**，默认 `unsigned char`。实现只对单元做赋值与 `sizeof`，所以任意可赋值的完整类型都可用，结构体也已实测可行。`test/stream_basic.c` 逐字符转换填充数据，所以在整数单元类型下都能编译；单元换成结构体时这个用例编译不过，属预期。
 - `lylist_destroy` 释放节点但**不释放 `list` 句柄本身**，即使 `lylist_create` 用了 malloc。这是刻意的：`struct LyList` 是公开类型，调用者可能栈分配它。堆上创建的句柄按设计由调用者自己 `free`。
 - list、pool、table、bucket 保留外部 `void *` 指针，不要假定拥有调用者的业务对象。table 拷贝键但不释放值。
 - set 的**哈希可为 NULL**（回退到 `set_hash_default`，按字节 FNV-1a，与 `lytable_create(NULL)` 一致），但**比较回调必须提供且无法有默认实现**：`Equals_t` 是 `bool (const void *a, const void *b)`，不带长度参数，库无从知道该比较多少字节。要修得改 `Equals_t` 签名，属破坏性 API 变更，未做。
