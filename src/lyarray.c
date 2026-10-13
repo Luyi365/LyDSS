@@ -26,8 +26,12 @@ struct LyArray {
     bool is_static;             ///< 成员区是否由调用者提供
 };
 
+_Static_assert(sizeof(struct LyArray) <= sizeof(LyArrayStatic_t)
+               && _Alignof(struct LyArray) <= _Alignof(LyArrayStatic_t),
+               "LyArrayStatic_t is too small or under-aligned for struct LyArray");
+
 /// @brief 创建一个数组
-LyArray_t *lyarray_create(unsigned long len, unsigned long item_size)
+LyArray_t *lyarray_create(size_t len, size_t item_size)
 {
     LYDSS_ASSERT(len);
     LYDSS_ASSERT(item_size);
@@ -48,19 +52,22 @@ LyArray_t *lyarray_create(unsigned long len, unsigned long item_size)
 }
 
 /// @brief 创建一个静态数组，不清零 buf
-void lyarray_create_static(LyArray_t *array, void *buf, unsigned long len, unsigned long item_size)
+LyArray_t *lyarray_create_static(LyArrayStatic_t *storage, void *buf, size_t len, size_t item_size)
 {
-    LYDSS_ASSERT(array);
+    LYDSS_ASSERT(storage);
     LYDSS_ASSERT(buf);
     LYDSS_ASSERT(len);
     LYDSS_ASSERT(item_size);
 
+    LyArray_t *array = (LyArray_t *)storage;
     lystore_bind(&array->store, buf, len, item_size);
     array->is_static = true;
+
+    return array;
 }
 
 /// @brief 写入指定下标的成员
-bool lyarray_set(LyArray_t *array, unsigned long index, const void *item)
+bool lyarray_set(LyArray_t *array, size_t index, const void *item)
 {
     LYDSS_ASSERT(array);
     LYDSS_ASSERT(item);
@@ -75,7 +82,7 @@ bool lyarray_set(LyArray_t *array, unsigned long index, const void *item)
 }
 
 /// @brief 获取指定下标成员的地址
-void *lyarray_get(LyArray_t *array, unsigned long index)
+void *lyarray_get(LyArray_t *array, size_t index)
 {
     LYDSS_ASSERT(array);
 
@@ -87,7 +94,7 @@ void *lyarray_get(LyArray_t *array, unsigned long index)
 }
 
 /// @brief 读取指定下标的成员到缓冲区
-bool lyarray_read(LyArray_t *array, unsigned long index, void *buf)
+bool lyarray_read(LyArray_t *array, size_t index, void *buf)
 {
     LYDSS_ASSERT(array);
     LYDSS_ASSERT(buf);
@@ -116,7 +123,7 @@ void lyarray_delete(LyArray_t *array)
 }
 
 /// @brief 获取数组可容纳的成员数量
-unsigned long lyarray_length(LyArray_t *array)
+size_t lyarray_length(LyArray_t *array)
 {
     LYDSS_ASSERT(array);
 
@@ -124,7 +131,7 @@ unsigned long lyarray_length(LyArray_t *array)
 }
 
 /// @brief 获取单个成员的大小
-unsigned long lyarray_item_size(LyArray_t *array)
+size_t lyarray_item_size(LyArray_t *array)
 {
     LYDSS_ASSERT(array);
 

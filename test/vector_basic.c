@@ -13,29 +13,30 @@
 
 #include <stdio.h>
 
-int vector_basic()
+int vector_basic(void)
 {
     LyVector_t *vector = lyvector_create(2, sizeof(int));
+    printf("创建初始容量 %zu 的动态数组\n", lyvector_capacity(vector));
 
-    /* 变长容器的特征：容量随追加按倍数增长，容量序列 2 2 4 4 8 */
+    /* 变长容器的特征：容量随追加按倍数增长 */
     for(int i = 1; i <= 5; i++) {
         lyvector_push_rear(vector, &i);
-        printf("push %d -> size = %lu, capacity = %lu\n",
+        printf("追加 %d：长度 %zu，容量 %zu\n",
             i, lyvector_size(vector), lyvector_capacity(vector));
     }
 
-    printf("dump     = ");
-    for(unsigned long i = 0; i < lyvector_size(vector); i++) {
-        printf("%d ", *(int *)lyvector_get(vector, i));          // 1 2 3 4 5
+    printf("当前内容");
+    for(size_t i = 0; i < lyvector_size(vector); i++) {
+        printf(" %d", *(int *)lyvector_get(vector, i));
     }
     printf("\n");
 
     int val = 0;
     lyvector_read(vector, 2, &val);
-    printf("read2    = %d\n", val);                             // 3
+    printf("读取 [2]：%d\n", val);
 
     lyvector_pop_rear(vector, &val);
-    printf("pop      = %d, size = %lu\n", val, lyvector_size(vector));  // 5, 4
+    printf("弹出尾部：%d，剩余长度 %zu\n", val, lyvector_size(vector));
 
     lyvector_delete(vector);
 

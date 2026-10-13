@@ -12,26 +12,26 @@
 #include <stdio.h>
 #include <string.h>
 
-int simple()
+int simple(void)
 {
-    LyStream_t *stream = lystream_create(16);
+    int a = 5, b = 6;
+    LyPool_t *pool = lypool_create(2);
 
-    cell_t text[] = "LyDSS stream";
-    size_t len = sizeof(text) - 1;               /* 不写入结尾的 '\0' */
+    /* 池的特征：以名字登记外部对象，只保留指针不复制 */
+    lypool_post(pool, "TEST1", &a);
+    lypool_post(pool, "TEST2", &b);
+    printf("创建容量 2 的池，登记 TEST1 = %d、TEST2 = %d\n", a, b);
 
-    printf("in    = %u\n", (unsigned)lystream_in(stream, text, len));    // 12
-    printf("count = %u\n", (unsigned)lystream_count(stream));            // 12
+    bool posted = lypool_post(pool, "TEST3", &a);
+    printf("再登记 TEST3：%s\n", posted ? "成功" : "失败，池已满");
 
-    /* 流的特征：写入的是一段连续数据，取出时可按需分段，不必整存整取；
-       余量不足时只给出剩下的部分，由返回值告知实际取到多少 */
-    cell_t buf[8] = { 0 };
-    for(int seg = 1; lystream_count(stream) > 0; seg++) {
-        size_t got = lystream_out(stream, buf, 5);
-        printf("seg%d  = %u : %.*s\n", seg, (unsigned)got, (int)got, (char *)buf);
-    }
-    printf("count = %u\n", (unsigned)lystream_count(stream));            // 0
+    printf("取 TEST1：%d\n", *(int *)lypool_get(pool, "TEST1"));
+    printf("取 NONE：%s\n", lypool_get(pool, "NONE") != NULL ? "找到" : "未找到");
 
-    lystream_delete(stream);
+    lypool_clear(pool, "TEST1");
+    printf("清除 TEST1 后再取：%s\n", lypool_get(pool, "TEST1") != NULL ? "找到" : "未找到");
+
+    lypool_delete(pool);
 
     return 0;
 }

@@ -24,14 +24,18 @@
 
 struct LyQueue {
     LyStore_t store;                ///< 成员区描述（地址、容量、成员大小）
-    unsigned long en_index;         ///< 入队位置索引
-    unsigned long de_index;         ///< 出队位置索引
-    unsigned long count;            ///< 队列中成员的数量
+    size_t en_index;                ///< 入队位置索引
+    size_t de_index;                ///< 出队位置索引
+    size_t count;                   ///< 队列中成员的数量
     bool is_static;                 ///< 成员区是否由调用者提供
 };
 
+_Static_assert(sizeof(struct LyQueue) <= sizeof(LyQueueStatic_t)
+               && _Alignof(struct LyQueue) <= _Alignof(LyQueueStatic_t),
+               "LyQueueStatic_t is too small or under-aligned for struct LyQueue");
+
 /// @brief 创建一个队列
-LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size)
+LyQueue_t *lyqueue_create(size_t len, size_t item_size)
 {
     LYDSS_ASSERT(item_size);
 
@@ -54,17 +58,20 @@ LyQueue_t *lyqueue_create(unsigned long len, unsigned long item_size)
 }
 
 /// @brief 创建一个静态队列
-void lyqueue_create_static(LyQueue_t *queue, void *buf, unsigned long len, unsigned long item_size)
+LyQueue_t *lyqueue_create_static(LyQueueStatic_t *storage, void *buf, size_t len, size_t item_size)
 {
-    LYDSS_ASSERT(queue);
+    LYDSS_ASSERT(storage);
     LYDSS_ASSERT(buf);
     LYDSS_ASSERT(item_size);
 
+    LyQueue_t *queue = (LyQueue_t *)storage;
     lystore_bind(&queue->store, buf, len, item_size);
     queue->en_index = 0;
     queue->de_index = 0;
     queue->count = 0;
     queue->is_static = true;
+
+    return queue;
 }
 
 /// @brief 数据入队
@@ -146,7 +153,7 @@ void lyqueue_delete(LyQueue_t *queue)
 }
 
 /// @brief 获取队列中当前的成员个数
-unsigned long lyqueue_count(LyQueue_t *queue)
+size_t lyqueue_count(LyQueue_t *queue)
 {
     LYDSS_ASSERT(queue);
 

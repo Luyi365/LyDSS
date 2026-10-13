@@ -19,9 +19,6 @@
 #include <string.h>
 
 #define INITIAL_CAPACITY 16     ///< 槽位初始数量
-#define LOAD_FACTOR 0.75        ///< 触发扩容的负载因子
-
-/* 负载判定用浮点除法，无 FPU 目标会链入软浮点；改整数时注意 size*4>=capacity*3 会溢出 */
 
 struct LyTableNode {
     char *key;                  ///< 键的副本
@@ -68,7 +65,10 @@ int lytable_set(LyTable_t *table, const char *key, void *value)
         return -1;
     }
 
-    if((double)table->size / table->capacity >= LOAD_FACTOR) {
+    /* 负载因子 3/4，不写成 size*4 >= capacity*3：32 位下会溢出。
+       翻倍会溢出时不再扩容，避免槽位数回绕为 0 */
+    if(table->size >= table->capacity - table->capacity / 4
+        && table->capacity <= SIZE_MAX / 2) {
         if(table_resize_slots(table, table->capacity * 2) != 0) {
             return -1;
         }

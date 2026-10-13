@@ -21,7 +21,7 @@ static bool byte_equals(const void *a, const void *b)
     return memcmp(a, b, sizeof(int)) == 0;
 }
 
-int set_basic()
+int set_basic(void)
 {
     /* hash 传 NULL 表示使用内置的按字节 FNV-1a */
     LySet_t *set = lyset_init(5, sizeof(int), NULL, byte_equals);
@@ -29,11 +29,13 @@ int set_basic()
     int a = 1, b = 2;
     lyset_add(set, &a);
     lyset_add(set, &b);
+    printf("添加 %d、%d\n", a, b);
 
     /* 集合的特征：元素唯一，重复添加被拒绝 */
-    printf("add dup  = %d\n", lyset_add(set, &b));               // 0
-    printf("count    = %u\n", (unsigned)lyset_count(set));       // 2
-    printf("contains = %d\n", lyset_contains(set, &b));          // 1
+    bool added = lyset_add(set, &b);
+    printf("再添加 %d：%s\n", b, added ? "成功" : "失败，元素已存在");
+    printf("元素个数：%zu\n", lyset_count(set));
+    printf("是否包含 %d：%s\n", b, lyset_contains(set, &b) ? "是" : "否");
 
     lyset_destroy(set);
 

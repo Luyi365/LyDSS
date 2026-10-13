@@ -27,6 +27,10 @@ struct LyStream {
     cell_t *buffer;      ///< 缓冲区
 };
 
+_Static_assert(sizeof(struct LyStream) <= sizeof(LyStreamStatic_t)
+               && _Alignof(struct LyStream) <= _Alignof(LyStreamStatic_t),
+               "LyStreamStatic_t is too small or under-aligned for struct LyStream");
+
 /// @brief 创建流
 LyStream_t *lystream_create(size_t size)
 {
@@ -54,18 +58,21 @@ LyStream_t *lystream_create(size_t size)
 }
 
 /// @brief 创建一个静态流
-void lystream_create_static(LyStream_t *stream, void *buf, size_t size)
+LyStream_t *lystream_create_static(LyStreamStatic_t *storage, void *buf, size_t size)
 {
-    LYDSS_ASSERT(stream);
+    LYDSS_ASSERT(storage);
     LYDSS_ASSERT(buf);
     LYDSS_ASSERT(size);
 
+    LyStream_t *stream = (LyStream_t *)storage;
     stream->head = 0;
     stream->tail = 0;
     stream->count = 0;
     stream->size = size;
     stream->is_static = true;
     stream->buffer = buf;
+
+    return stream;
 }
 
 /// @brief 数据流入，返回实际写入的单元数

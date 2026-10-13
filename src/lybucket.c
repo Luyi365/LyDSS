@@ -47,7 +47,7 @@ struct LyBucketNode {
 };
 
 struct LyBucket {
-    uint8_t count;                  ///< 桶中项的实际数量
+    size_t count;                   ///< 桶中项的实际数量
     LyBucketNode_t *head_item;      ///< 指向桶首成员
     LyBucketNode_t *tail_item;      ///< 指向桶尾成员
 };
@@ -116,14 +116,12 @@ LyBucketNode_t *lybucket_head(LyBucket_t *bucket, bool at_tail)
 }
 
 /// @brief 获取桶中的节点
-/// @note 缺陷：循环受 uint8_t 的 count 约束，超过 255 项后找不到条目（链表本以 NULL 结尾）
 LyBucketNode_t *lybucket_get(LyBucket_t *bucket, const char *const name)
 {
     LYDSS_ASSERT(bucket);
     LYDSS_ASSERT(name);
 
-    LyBucketNode_t *cur = bucket->head_item;
-    for(uint32_t i = 0; cur != NULL && i < bucket->count; cur = cur->next, i++) {
+    for(LyBucketNode_t *cur = bucket->head_item; cur != NULL; cur = cur->next) {
         if(cur->name != NULL && strcmp(cur->name, name) == 0) {
             return cur;
         }
@@ -189,8 +187,7 @@ bool lybucket_patch_meta(LyBucket_t *bucket, const char *const name, LyBucketMet
     return false;
 }
 
-/// @brief 从桶中移除项但不释放，仅用于把节点重新链入别处
-/// @note 本库无释放该节点的接口，要摘下并销毁请用 lybucket_erase
+/// @brief 从桶中移除项但不释放
 LyBucketNode_t *lybucket_remove(LyBucket_t *bucket, const char *const name)
 {
     LYDSS_ASSERT(bucket);
@@ -214,6 +211,15 @@ void lybucket_remove_node(LyBucket_t *bucket, LyBucketNode_t *node)
     bucket->count--;
 }
 
+/// @brief 释放已从桶中摘下的节点及其元数据副本
+void lybucket_free_node(LyBucketNode_t *node)
+{
+    LYDSS_ASSERT(node);
+
+    free(node->meta.data);
+    free(node);
+}
+
 /// @brief 删除桶中的节点
 bool lybucket_erase(LyBucket_t *bucket, const char *const name)
 {
@@ -222,10 +228,7 @@ bool lybucket_erase(LyBucket_t *bucket, const char *const name)
 
     LyBucketNode_t *cur = lybucket_remove(bucket, name);
     if(cur != NULL) {
-        if(cur->meta.data != NULL) {
-            free(cur->meta.data);
-        }
-        free(cur);
+        lybucket_free_node(cur);
         return true;
     }
 
@@ -240,10 +243,7 @@ void lybucket_delete(LyBucket_t *bucket)
     LyBucketNode_t *cur = bucket->head_item;
     while(cur != NULL) {
         LyBucketNode_t *next = cur->next;
-        if(cur->meta.data != NULL) {
-            free(cur->meta.data);
-        }
-        free(cur);
+        lybucket_free_node(cur);
         cur = next;
     }
 

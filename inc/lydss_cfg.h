@@ -26,16 +26,25 @@
 #define LYDSS_ASSERT_ENABLED 1
 #endif
 
-/* 仅断言输出需要 stdio，裁剪断言后不引入，以适应没有标准输出的裸机目标 */
 #if LYDSS_ASSERT_ENABLED
+
+/* 断言失败时的输出。MicroLIB 下 printf 需要工程重定向 fputc */
+#ifndef LYDSS_PRINTF
 #include <stdio.h>
+#define LYDSS_PRINTF(...) printf(__VA_ARGS__)
+#endif
+
+/* 断言失败后的陷阱动作。默认为空，以保证任何架构都能编译 */
+#ifndef LYDSS_TRAP
+#define LYDSS_TRAP()
+#endif
 #endif
 
 /* ---------------------------------- 功能裁剪 ---------------------------------- */
 /**
  * @note
  * 关闭某个容器后，它在 lydss_api.h 中的声明与在 src/ 中的实现都不参与编译，
- * 对应静态库成为空库。十个容器互不依赖，可以任意组合。
+ * 对应静态库成为空库。十一个容器互不依赖，可以任意组合。
  * 排列顺序与 lydss_api.h 的分节顺序一致，新增开关请插入对应位置。
  *
  * 新增容器时必须同步四处：本文件的默认值、lydss_api.h 的声明块、
@@ -53,6 +62,10 @@
 
 #ifndef LYDSS_VECTOR_ENABLED
 #define LYDSS_VECTOR_ENABLED 1
+#endif
+
+#ifndef LYDSS_PINGPONG_ENABLED
+#define LYDSS_PINGPONG_ENABLED 1
 #endif
 
 #ifndef LYDSS_STACK_ENABLED
@@ -80,7 +93,7 @@
 #endif
 
 #ifndef LYDSS_BUCKET_ENABLED
-#define LYDSS_BUCKET_ENABLED 1
+#define LYDSS_BUCKET_ENABLED 0
 #endif
 
 #endif        /* LYDSS_CFG_H */

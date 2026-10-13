@@ -13,27 +13,27 @@
 
 #include <stdio.h>
 
-int array_basic()
+int array_basic(void)
 {
     LyArray_t *array = lyarray_create(5, sizeof(int));
-
-    printf("length    = %lu\n", lyarray_length(array));         // 5
-    printf("item_size = %lu\n", lyarray_item_size(array));      // 4
+    printf("创建长度 %zu 的数组，成员大小 %zu 字节\n",
+        lyarray_length(array), lyarray_item_size(array));
 
     /* 定长容器的特征：槽位自始存在，可按任意下标直接写入，无需先追加 */
     int a = 10, b = 30;
     lyarray_set(array, 0, &a);
     lyarray_set(array, 3, &b);
+    printf("写入 [0] = %d、[3] = %d\n", a, b);
 
-    printf("dump      = ");
-    for(unsigned long i = 0; i < lyarray_length(array); i++) {
-        printf("%d ", *(int *)lyarray_get(array, i));           // 10 0 0 30 0
+    printf("全部槽位");
+    for(size_t i = 0; i < lyarray_length(array); i++) {
+        printf(" %d", *(int *)lyarray_get(array, i));
     }
-    printf("\n");
+    printf("（未写入的为 0）\n");
 
     int val = 0;
     lyarray_read(array, 3, &val);
-    printf("read3     = %d\n", val);                            // 30
+    printf("读取 [3]：%d\n", val);
 
     lyarray_delete(array);
 

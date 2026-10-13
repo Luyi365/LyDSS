@@ -150,31 +150,4 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node)
     return node_data;
 }
 
-/// @brief 交换节点
-void lylist_swap(LyListNode_t *a, LyListNode_t *b)
-{
-    LYDSS_ASSERT(a);
-    LYDSS_ASSERT(b);
-
-    LyListNode_t *tmp = a->prev;
-    a->prev = b->prev;
-    b->prev = tmp;
-    tmp = a->next;
-    a->next = b->next;
-    b->next = tmp;
-
-    if(a->prev != NULL) {
-        a->prev->next = a;
-    }
-    if(a->next != NULL) {
-        a->next->prev = a;
-    }
-    if(b->prev != NULL) {
-        b->prev->next = b;
-    }
-    if(b->next != NULL) {
-        b->next->prev = b;
-    }
-}
-
 #endif /* LYDSS_LIST_ENABLED */

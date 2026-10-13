@@ -20,20 +20,19 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <limits.h>
 
 #define LYVECTOR_GROWTH_FACTOR 2    ///< 容量增长倍数
 
 struct LyVector {
-    LyStore_t store;              ///< 成员区描述，其中 base.length 即容量
-    unsigned long size;         ///< 当前成员数量
+    LyStore_t store;            ///< 成员区描述，其中 store.length 即容量
+    size_t size;                ///< 当前成员数量
 };
 
-static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need);
-static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len);
+static bool vector_reserve_capacity(LyVector_t *vector, size_t need);
+static bool vector_resize_buffer(LyVector_t *vector, size_t new_len);
 
 /// @brief 创建一个动态数组
-LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
+LyVector_t *lyvector_create(size_t len, size_t item_size)
 {
     LYDSS_ASSERT(len);
     LYDSS_ASSERT(item_size);
@@ -54,7 +53,7 @@ LyVector_t *lyvector_create(unsigned long len, unsigned long item_size)
 }
 
 /// @brief 预留容量，只增不减
-bool lyvector_reserve(LyVector_t *vector, unsigned long len)
+bool lyvector_reserve(LyVector_t *vector, size_t len)
 {
     LYDSS_ASSERT(vector);
 
@@ -83,7 +82,7 @@ bool lyvector_push_rear(LyVector_t *vector, const void *item)
 }
 
 /// @brief 写入指定下标的成员，边界对 size 判定，不能写进空闲容量
-bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item)
+bool lyvector_set(LyVector_t *vector, size_t index, const void *item)
 {
     LYDSS_ASSERT(vector);
     LYDSS_ASSERT(item);
@@ -99,7 +98,7 @@ bool lyvector_set(LyVector_t *vector, unsigned long index, const void *item)
 
 /// @brief 获取指定下标成员的地址
 /// @note 任何触发重分配的操作之后该地址失效
-void *lyvector_get(LyVector_t *vector, unsigned long index)
+void *lyvector_get(LyVector_t *vector, size_t index)
 {
     LYDSS_ASSERT(vector);
 
@@ -111,7 +110,7 @@ void *lyvector_get(LyVector_t *vector, unsigned long index)
 }
 
 /// @brief 读取指定下标的成员到缓冲区
-bool lyvector_read(LyVector_t *vector, unsigned long index, void *buf)
+bool lyvector_read(LyVector_t *vector, size_t index, void *buf)
 {
     LYDSS_ASSERT(vector);
     LYDSS_ASSERT(buf);
@@ -157,7 +156,7 @@ bool lyvector_shrink(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
 
-    unsigned long new_len = vector->size > 0 ? vector->size : 1;
+    size_t new_len = vector->size > 0 ? vector->size : 1;
     if(new_len >= vector->store.length) {
         return true;
     }
@@ -175,7 +174,7 @@ void lyvector_delete(LyVector_t *vector)
 }
 
 /// @brief 获取当前成员数量
-unsigned long lyvector_size(LyVector_t *vector)
+size_t lyvector_size(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
 
@@ -183,7 +182,7 @@ unsigned long lyvector_size(LyVector_t *vector)
 }
 
 /// @brief 获取当前容量
-unsigned long lyvector_capacity(LyVector_t *vector)
+size_t lyvector_capacity(LyVector_t *vector)
 {
     LYDSS_ASSERT(vector);
 
@@ -200,15 +199,15 @@ bool lyvector_is_empty(LyVector_t *vector)
 
 /* --------------------------------- static --------------------------------- */
 /// @brief 确保容量至少能容纳 need 个成员，不足则按倍数增长
-static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need)
+static bool vector_reserve_capacity(LyVector_t *vector, size_t need)
 {
     if(need <= vector->store.length) {
         return true;
     }
 
-    unsigned long new_len = vector->store.length;
+    size_t new_len = vector->store.length;
     while(new_len < need) {
-        if(new_len > ULONG_MAX / LYVECTOR_GROWTH_FACTOR) {
+        if(new_len > SIZE_MAX / LYVECTOR_GROWTH_FACTOR) {
             new_len = need;     // 继续倍增会溢出，退化为按需分配
             break;
         }
@@ -219,7 +218,7 @@ static bool vector_reserve_capacity(LyVector_t *vector, unsigned long need)
 }
 
 /// @brief 重新分配成员区
-static bool vector_resize_buffer(LyVector_t *vector, unsigned long new_len)
+static bool vector_resize_buffer(LyVector_t *vector, size_t new_len)
 {
     LYDSS_ASSERT(new_len >= vector->size);
 

@@ -14,12 +14,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main()
+int main(void)
 {
     int status = 0;
 
     /** ./test/simple.c */
-    extern int simple();
+    extern int simple(void);
     status |= simple();
     printf("\n");
 

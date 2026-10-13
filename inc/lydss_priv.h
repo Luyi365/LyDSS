@@ -21,16 +21,15 @@
 #include <stdbool.h>
 
 /* --------------------------------- 连续存储 -------------------------------- */
-/// @note 由数组、动态数组、栈、队列按值嵌入，成员名统一为 store。
+/// @note 由数组、动态数组、乒乓缓冲、栈、队列按值嵌入，成员名统一为 store。
 ///       不含 is_static，以免动态数组白占填充、改变句柄尺寸。
 typedef struct LyStore {
     void *buffer;               ///< 成员区
-    unsigned long length;       ///< 成员区可容纳的成员数量
-    unsigned long item_size;    ///< 单个成员的大小（单位：字节）
+    size_t length;              ///< 成员区可容纳的成员数量
+    size_t item_size;           ///< 单个成员的大小（单位：字节）
 } LyStore_t;
 
 /// @brief 计算 count*item_size 字节数，溢出返回 false
-/// @note 以 SIZE_MAX 为界而非 ULONG_MAX，避免在两者不等宽的 ABI 上误判。
 static inline bool lystore_bytes(size_t count, size_t item_size, size_t *bytes) {
     if(item_size != 0 && count > SIZE_MAX / item_size) {
         return false;
@@ -42,19 +41,19 @@ static inline bool lystore_bytes(size_t count, size_t item_size, size_t *bytes) 
 }
 
 /// @brief 计算指定下标成员的地址
-static inline void *lystore_address(LyStore_t *store, unsigned long index) {
+static inline void *lystore_address(LyStore_t *store, size_t index) {
     return (unsigned char *)store->buffer + index * store->item_size;
 }
 
 /// @brief 绑定调用者提供的成员区
-static inline void lystore_bind(LyStore_t *store, void *buf, unsigned long len, unsigned long item_size) {
+static inline void lystore_bind(LyStore_t *store, void *buf, size_t len, size_t item_size) {
     store->buffer = buf;
     store->length = len;
     store->item_size = item_size;
 }
 
 /// @brief 分配自持的成员区，zeroed 为真则清零；失败时不改动 store
-static inline bool lystore_alloc(LyStore_t *store, unsigned long len, unsigned long item_size, bool zeroed) {
+static inline bool lystore_alloc(LyStore_t *store, size_t len, size_t item_size, bool zeroed) {
     size_t bytes = 0;
     if(lystore_bytes(len, item_size, &bytes) == false) {
         return false;
@@ -73,7 +72,7 @@ static inline bool lystore_alloc(LyStore_t *store, unsigned long len, unsigned l
 }
 
 /// @brief 重分配成员区并更新容量；失败时原区不变，增长策略归容器
-static inline bool lystore_realloc(LyStore_t *store, unsigned long new_len) {
+static inline bool lystore_realloc(LyStore_t *store, size_t new_len) {
     size_t bytes = 0;
     if(lystore_bytes(new_len, store->item_size, &bytes) == false) {
         return false;

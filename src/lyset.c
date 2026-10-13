@@ -201,52 +201,6 @@ bool lyset_contains(const LySet_t *set, const void *elem)
     return false;
 }
 
-/// @brief 判断两个集合的关系
-LySetRelation_t lyset_relation(const LySet_t *self, const LySet_t *other)
-{
-    LYDSS_ASSERT(self);
-    LYDSS_ASSERT(other);
-
-    bool self_in_other = true;
-    bool other_in_self = true;
-    bool has_inter = false;
-
-    for(size_t i = 0; i < self->size; i++) {
-        for(struct ElemNode *node = self->elem_node[i]; node != NULL; node = node->next) {
-            if(lyset_contains(other, node->element)) {
-                has_inter = true;
-            }
-            else {
-                self_in_other = false;
-            }
-        }
-    }
-
-    for(size_t i = 0; i < other->size; i++) {
-        for(struct ElemNode *node = other->elem_node[i]; node != NULL; node = node->next) {
-            if(!lyset_contains(self, node->element)) {
-                other_in_self = false;
-                break;
-            }
-        }
-    }
-
-    if(self_in_other && other_in_self) {
-        return LySetRelation_SAME;
-    }
-    if(self_in_other) {
-        return LySetRelation_PROSUB;
-    }
-    if(other_in_self) {
-        return LySetRelation_PROSUP;
-    }
-    if(has_inter) {
-        return LySetRelation_INTER;
-    }
-
-    return LySetRelation_NONE;
-}
-
 /* --------------------------------- static --------------------------------- */
 /// @brief 默认哈希函数（FNV-1a），按字节处理元素
 static unsigned set_hash_default(const void *data, size_t len)
