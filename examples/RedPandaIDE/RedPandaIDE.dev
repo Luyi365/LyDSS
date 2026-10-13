@@ -64,45 +64,6 @@ SyncProduct = 1
 
 
 [Unit1]
-FileName = ../../test/queue_basic.c
-CompileCpp = 0
-Folder = 源文件
-Compile = 1
-Link = 1
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = UTF-8
-
-
-[Unit2]
-FileName = ../../inc/lydss_cfg.h
-CompileCpp = 0
-Folder = 头文件
-Compile = 0
-Link = 0
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = UTF-8
-
-
-[Unit3]
-FileName = ../../src/lyset.c
-CompileCpp = 0
-Folder = 源文件
-Compile = 1
-Link = 1
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = UTF-8
-
-
-[Unit4]
 FileName = ../../inc/lydss_api.h
 CompileCpp = 0
 Folder = 头文件
@@ -112,10 +73,10 @@ Priority = 1000
 OverrideBuildCmd = 0
 BuildCmd = 
 FileEncoding = PROJECT
-RealEncoding = ASCII
+RealEncoding = UTF-8
 
 
-[Unit5]
+[Unit2]
 FileName = ../../test/simple.c
 CompileCpp = 0
 Folder = 源文件
@@ -128,7 +89,7 @@ FileEncoding = PROJECT
 RealEncoding = UTF-8
 
 
-[Unit6]
+[Unit3]
 FileName = ../../test/bucket_basic.c
 CompileCpp = 0
 Folder = 源文件
@@ -141,7 +102,20 @@ FileEncoding = PROJECT
 RealEncoding = UTF-8
 
 
-[Unit7]
+[Unit4]
+FileName = ../../inc/lydss_cfg.h
+CompileCpp = 0
+Folder = 头文件
+Compile = 0
+Link = 0
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = UTF-8
+
+
+[Unit5]
 FileName = ../../src/lypool.c
 CompileCpp = 0
 Folder = 源文件
@@ -154,20 +128,7 @@ FileEncoding = PROJECT
 RealEncoding = UTF-8
 
 
-[Unit8]
-FileName = ../../test/set_basic.c
-CompileCpp = 0
-Folder = 源文件
-Compile = 1
-Link = 1
-Priority = 1000
-OverrideBuildCmd = 0
-BuildCmd = 
-FileEncoding = PROJECT
-RealEncoding = UTF-8
-
-
-[Unit9]
+[Unit6]
 FileName = ../../src/lyqueue.c
 CompileCpp = 0
 Folder = 源文件
@@ -180,8 +141,47 @@ FileEncoding = PROJECT
 RealEncoding = UTF-8
 
 
+[Unit7]
+FileName = ../../test/queue_basic.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = UTF-8
+
+
+[Unit8]
+FileName = ../../test/pool_basic.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = UTF-8
+
+
+[Unit9]
+FileName = ../../src/lyset.c
+CompileCpp = 0
+Folder = 源文件
+Compile = 1
+Link = 1
+Priority = 1000
+OverrideBuildCmd = 0
+BuildCmd = 
+FileEncoding = PROJECT
+RealEncoding = UTF-8
+
+
 [Unit10]
-FileName = ../run_simple_test.c
+FileName = ../../test/set_basic.c
 CompileCpp = 0
 Folder = 源文件
 Compile = 1
@@ -207,7 +207,7 @@ RealEncoding = UTF-8
 
 
 [Unit12]
-FileName = ../../test/pool_basic.c
+FileName = ../run_simple_test.c
 CompileCpp = 0
 Folder = 源文件
 Compile = 1
