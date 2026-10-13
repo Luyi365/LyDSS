@@ -60,13 +60,17 @@
 
 struct LyPool {
     size_t size;                    ///< 池大小，也就是存放的对象数量
+#if LYDSS_POOL_STATIC_ENABLED
     bool is_static;                 ///< 对象数组是否由调用者提供
+#endif
     LyPoolItem_t *items;            ///< 对象数组
 };
 
+#if LYDSS_POOL_STATIC_ENABLED
 _Static_assert(sizeof(struct LyPool) <= sizeof(LyPoolStatic_t)
                && _Alignof(struct LyPool) <= _Alignof(LyPoolStatic_t),
                "LyPoolStatic_t is too small or under-aligned for struct LyPool");
+#endif
 
 /// @brief 创建一个池
 LyPool_t *lypool_create(size_t size)
@@ -85,11 +89,14 @@ LyPool_t *lypool_create(size_t size)
     }
 
     pool->size = size;
+#if LYDSS_POOL_STATIC_ENABLED
     pool->is_static = false;
+#endif
 
     return pool;
 }
 
+#if LYDSS_POOL_STATIC_ENABLED
 /// @brief 创建一个静态池
 LyPool_t *lypool_create_static(LyPoolStatic_t *storage, LyPoolItem_t *items, size_t size)
 {
@@ -108,6 +115,7 @@ LyPool_t *lypool_create_static(LyPoolStatic_t *storage, LyPoolItem_t *items, siz
 
     return pool;
 }
+#endif
 
 /// @brief 将一个对象引入池
 bool lypool_post(LyPool_t *pool, const char *const name, void *obj)
@@ -168,11 +176,13 @@ void lypool_delete(LyPool_t *pool)
         pool->items[i].object = NULL;
     }
 
+#if LYDSS_POOL_STATIC_ENABLED
     if(pool->is_static == true) {
         pool->items = NULL;
         pool->size = 0;
         return;
     }
+#endif
 
     free(pool->items);
     free(pool);

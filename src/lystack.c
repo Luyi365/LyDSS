@@ -22,12 +22,16 @@
 struct LyStack {
     LyStore_t store;            ///< 栈数据描述（地址、容量、成员大小）
     size_t top;                 ///< 栈顶索引（当前成员数量）
+#if LYDSS_STACK_STATIC_ENABLED
     bool is_static;             ///< 栈数据是否由调用者提供
+#endif
 };
 
+#if LYDSS_STACK_STATIC_ENABLED
 _Static_assert(sizeof(struct LyStack) <= sizeof(LyStackStatic_t)
                && _Alignof(struct LyStack) <= _Alignof(LyStackStatic_t),
                "LyStackStatic_t is too small or under-aligned for struct LyStack");
+#endif
 
 /// @brief 创建一个栈
 LyStack_t *lystack_create(size_t len, size_t item_size)
@@ -45,11 +49,14 @@ LyStack_t *lystack_create(size_t len, size_t item_size)
     }
 
     stack->top = 0;
+#if LYDSS_STACK_STATIC_ENABLED
     stack->is_static = false;
+#endif
 
     return stack;
 }
 
+#if LYDSS_STACK_STATIC_ENABLED
 /// @brief 创建一个静态栈
 LyStack_t *lystack_create_static(LyStackStatic_t *storage, void *buf, size_t len, size_t item_size)
 {
@@ -64,6 +71,7 @@ LyStack_t *lystack_create_static(LyStackStatic_t *storage, void *buf, size_t len
 
     return stack;
 }
+#endif
 
 /// @brief 数据入栈
 bool lystack_push(LyStack_t *stack, void *item)
@@ -123,11 +131,13 @@ void lystack_delete(LyStack_t *stack)
 {
     LYDSS_ASSERT(stack);
 
+#if LYDSS_STACK_STATIC_ENABLED
     if(stack->is_static == true) {
         lystore_unbind(&stack->store);
         stack->top = 0;
         return;
     }
+#endif
 
     lystore_free(&stack->store);
     free(stack);

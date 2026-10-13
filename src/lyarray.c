@@ -23,12 +23,16 @@
 
 struct LyArray {
     LyStore_t store;            ///< 成员区描述（地址、长度、成员大小）
+#if LYDSS_ARRAY_STATIC_ENABLED
     bool is_static;             ///< 成员区是否由调用者提供
+#endif
 };
 
+#if LYDSS_ARRAY_STATIC_ENABLED
 _Static_assert(sizeof(struct LyArray) <= sizeof(LyArrayStatic_t)
                && _Alignof(struct LyArray) <= _Alignof(LyArrayStatic_t),
                "LyArrayStatic_t is too small or under-aligned for struct LyArray");
+#endif
 
 /// @brief 创建一个数组
 LyArray_t *lyarray_create(size_t len, size_t item_size)
@@ -46,11 +50,14 @@ LyArray_t *lyarray_create(size_t len, size_t item_size)
         return NULL;
     }
 
+#if LYDSS_ARRAY_STATIC_ENABLED
     array->is_static = false;
+#endif
 
     return array;
 }
 
+#if LYDSS_ARRAY_STATIC_ENABLED
 /// @brief 创建一个静态数组，不清零 buf
 LyArray_t *lyarray_create_static(LyArrayStatic_t *storage, void *buf, size_t len, size_t item_size)
 {
@@ -65,6 +72,7 @@ LyArray_t *lyarray_create_static(LyArrayStatic_t *storage, void *buf, size_t len
 
     return array;
 }
+#endif
 
 /// @brief 写入指定下标的成员
 bool lyarray_set(LyArray_t *array, size_t index, const void *item)
@@ -113,10 +121,12 @@ void lyarray_delete(LyArray_t *array)
 {
     LYDSS_ASSERT(array);
 
+#if LYDSS_ARRAY_STATIC_ENABLED
     if(array->is_static == true) {
         lystore_unbind(&array->store);
         return;
     }
+#endif
 
     lystore_free(&array->store);
     free(array);

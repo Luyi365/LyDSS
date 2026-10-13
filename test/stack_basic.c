@@ -21,17 +21,23 @@ typedef struct Record Record_t;
 
 int stack_basic(void)
 {
+#if LYDSS_STACK_STATIC_ENABLED
     /* 静态构造，全程不调用 malloc */
     static LyStackStatic_t storage;
     static int buffer[8];
     LyStack_t *stack = lystack_create_static(&storage, buffer, 8, sizeof(int));
+    const char *how = "静态构造";
+#else
+    LyStack_t *stack = lystack_create(8, sizeof(int));
+    const char *how = "创建";
+#endif
 
     int a = 10, b = 20, c = 30, val = 0;
     lystack_push(stack, &a);
     lystack_push(stack, &b);
     lystack_push(stack, &c);
-    printf("静态构造容量 8 的栈，依次入栈 %d %d %d，当前 %zu 个成员\n",
-        a, b, c, lystack_count(stack));
+    printf("%s容量 8 的栈，依次入栈 %d %d %d，当前 %zu 个成员\n",
+        how, a, b, c, lystack_count(stack));
 
     /* 栈的特征：后进先出，取出顺序与写入顺序相反 */
     printf("依次出栈");

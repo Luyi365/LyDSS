@@ -18,7 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INITIAL_CAPACITY 16     ///< 槽位初始数量
+_Static_assert(LYDSS_TABLE_INITIAL_CAPACITY > 0 && LYDSS_TABLE_INITIAL_CAPACITY % 4 == 0,
+               "LYDSS_TABLE_INITIAL_CAPACITY must be a positive multiple of 4");
 
 struct LyTableNode {
     char *key;                  ///< 键的副本
@@ -44,7 +45,7 @@ LyTable_t *lytable_create(LyTableHash_t hash)
         return NULL;
     }
 
-    table->capacity = INITIAL_CAPACITY;
+    table->capacity = LYDSS_TABLE_INITIAL_CAPACITY;
     table->size = 0;
     table->hash = hash ? hash : table_hash_default;
 

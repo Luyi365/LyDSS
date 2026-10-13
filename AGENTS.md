@@ -259,7 +259,7 @@ vector 把 `capacity` 映射到 `store.length`，没有独立的容量字段。�
 记在这里以免被改回：
 
 - 陷阱动作已改为可覆盖的 `LYDSS_TRAP()`，断言输出已改为可覆盖的 `LYDSS_PRINTF`（见 API And Ownership）。
-- `lytable` 的负载判定已改为整数形式 `size >= capacity - capacity / 4`。**不要改写成 `size * 4 >= capacity * 3`**：32 位上乘积溢出、条件永假，表会静默停止扩容。槽位数从 16 起倍增，恒为 4 的倍数，所以除法形式精确等于 3/4。
+- `lytable` 的负载判定已改为整数形式 `size >= capacity - capacity / 4`。**不要改写成 `size * 4 >= capacity * 3`**：32 位上乘积溢出、条件永假，表会静默停止扩容。槽位数从 `LYDSS_TABLE_INITIAL_CAPACITY`（默认 16）起倍增，`lytable.c` 里的 `_Static_assert` 保证初值为 4 的正整数倍，所以槽位数恒为 4 的倍数，除法形式精确等于 3/4。放宽这条检查前先改负载判定。
 - `lytable` 扩容前检查 `capacity <= SIZE_MAX / 2`，再翻倍会溢出时停止扩容，只让冲突链变长。不加这个检查，回绕后的槽位数会让取模除零。实际需要 2^31 个槽位才触发，所以只做了读码确认，没有运行期用例。
 
 ### 参数校验缺失

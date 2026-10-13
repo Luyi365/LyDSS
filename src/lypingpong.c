@@ -25,12 +25,16 @@ struct LyPingPong {
     LyStore_t store[LYPINGPONG_BUFFER_COUNT];       ///< 两块等长成员区
     size_t count[LYPINGPONG_BUFFER_COUNT];          ///< 两块各自已写入的成员数量
     uint8_t fill;                                   ///< 当前填充块的索引
+#if LYDSS_PINGPONG_STATIC_ENABLED
     bool is_static;                                 ///< 成员区是否由调用者提供
+#endif
 };
 
+#if LYDSS_PINGPONG_STATIC_ENABLED
 _Static_assert(sizeof(struct LyPingPong) <= sizeof(LyPingPongStatic_t)
                && _Alignof(struct LyPingPong) <= _Alignof(LyPingPongStatic_t),
                "LyPingPongStatic_t is too small or under-aligned for struct LyPingPong");
+#endif
 
 /// @brief 创建一个乒乓缓冲
 LyPingPong_t *lypingpong_create(size_t len, size_t item_size)
@@ -57,11 +61,14 @@ LyPingPong_t *lypingpong_create(size_t len, size_t item_size)
     pingpong->count[0] = 0;
     pingpong->count[1] = 0;
     pingpong->fill = 0;
+#if LYDSS_PINGPONG_STATIC_ENABLED
     pingpong->is_static = false;
+#endif
 
     return pingpong;
 }
 
+#if LYDSS_PINGPONG_STATIC_ENABLED
 /// @brief 创建一个静态乒乓缓冲，不清零 buf_a 与 buf_b
 LyPingPong_t *lypingpong_create_static(LyPingPongStatic_t *storage, void *buf_a, void *buf_b,
                                        size_t len, size_t item_size)
@@ -82,6 +89,7 @@ LyPingPong_t *lypingpong_create_static(LyPingPongStatic_t *storage, void *buf_a,
 
     return pingpong;
 }
+#endif
 
 /// @brief 向填充块写入一个成员
 bool lypingpong_write(LyPingPong_t *pingpong, const void *item)
@@ -177,11 +185,13 @@ void lypingpong_delete(LyPingPong_t *pingpong)
 {
     LYDSS_ASSERT(pingpong);
 
+#if LYDSS_PINGPONG_STATIC_ENABLED
     if(pingpong->is_static == true) {
         lystore_unbind(&pingpong->store[0]);
         lystore_unbind(&pingpong->store[1]);
         return;
     }
+#endif
 
     lystore_free(&pingpong->store[0]);
     lystore_free(&pingpong->store[1]);

@@ -23,13 +23,17 @@ struct LyStream {
     size_t tail;         ///< 写游标
     size_t count;        ///< 流中当前的单元个数
     size_t size;         ///< 最大容量
+#if LYDSS_STREAM_STATIC_ENABLED
     bool is_static;      ///< 缓冲区是否由调用者提供
+#endif
     cell_t *buffer;      ///< 缓冲区
 };
 
+#if LYDSS_STREAM_STATIC_ENABLED
 _Static_assert(sizeof(struct LyStream) <= sizeof(LyStreamStatic_t)
                && _Alignof(struct LyStream) <= _Alignof(LyStreamStatic_t),
                "LyStreamStatic_t is too small or under-aligned for struct LyStream");
+#endif
 
 /// @brief 创建流
 LyStream_t *lystream_create(size_t size)
@@ -51,12 +55,15 @@ LyStream_t *lystream_create(size_t size)
     new_stream->tail = 0;
     new_stream->count = 0;
     new_stream->size = size;
+#if LYDSS_STREAM_STATIC_ENABLED
     new_stream->is_static = false;
+#endif
     new_stream->buffer = (cell_t *)(new_stream + 1);
 
     return new_stream;
 }
 
+#if LYDSS_STREAM_STATIC_ENABLED
 /// @brief 创建一个静态流
 LyStream_t *lystream_create_static(LyStreamStatic_t *storage, void *buf, size_t size)
 {
@@ -74,6 +81,7 @@ LyStream_t *lystream_create_static(LyStreamStatic_t *storage, void *buf, size_t 
 
     return stream;
 }
+#endif
 
 /// @brief 数据流入，返回实际写入的单元数
 size_t lystream_in(LyStream_t *stream, cell_t *data, size_t size)
@@ -142,6 +150,7 @@ void lystream_delete(LyStream_t *stream)
 {
     LYDSS_ASSERT(stream);
 
+#if LYDSS_STREAM_STATIC_ENABLED
     if(stream->is_static == true) {
         stream->buffer = NULL;
         stream->head = 0;
@@ -149,6 +158,7 @@ void lystream_delete(LyStream_t *stream)
         stream->count = 0;
         return;
     }
+#endif
 
     free(stream);
 }

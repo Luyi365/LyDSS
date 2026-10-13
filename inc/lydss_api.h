@@ -73,17 +73,10 @@ typedef struct LyPoolItem {
     void *object;               ///< 对象指针
 } LyPoolItem_t;
 
+#if LYDSS_POOL_STATIC_ENABLED
 typedef struct LyPoolStatic {
     void *opaque[3];
 } LyPoolStatic_t;
-
-/**
- * @brief 创建一个池
- *
- * @param size 池容量
- * @return 池句柄，内存不足时返回 NULL
- */
-LyPool_t *lypool_create(size_t size);
 
 /**
  * @brief 创建一个静态池
@@ -94,6 +87,16 @@ LyPool_t *lypool_create(size_t size);
  * @return 池句柄，即 storage 本身
  */
 LyPool_t *lypool_create_static(LyPoolStatic_t *storage, LyPoolItem_t *items, size_t size);
+
+#endif
+
+/**
+ * @brief 创建一个池
+ *
+ * @param size 池容量
+ * @return 池句柄，内存不足时返回 NULL
+ */
+LyPool_t *lypool_create(size_t size);
 
 /**
  * @brief 将一个对象引入池
@@ -142,20 +145,10 @@ void lypool_delete(LyPool_t *pool);
  */
 typedef struct LyArray LyArray_t;
 
+#if LYDSS_ARRAY_STATIC_ENABLED
 typedef struct LyArrayStatic {
     void *opaque[4];
 } LyArrayStatic_t;
-
-/**
- * @brief 创建一个数组
- *
- * @param len 数组长度
- * @param item_size 单个成员大小
- * @return 数组句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
- *
- * @note 成员区清零后交付
- */
-LyArray_t *lyarray_create(size_t len, size_t item_size);
 
 /**
  * @brief 创建一个静态数组
@@ -169,6 +162,19 @@ LyArray_t *lyarray_create(size_t len, size_t item_size);
  * @note 不改动 buf 的既有内容，槽位初值由调用者负责
  */
 LyArray_t *lyarray_create_static(LyArrayStatic_t *storage, void *buf, size_t len, size_t item_size);
+
+#endif
+
+/**
+ * @brief 创建一个数组
+ *
+ * @param len 数组长度
+ * @param item_size 单个成员大小
+ * @return 数组句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
+ *
+ * @note 成员区清零后交付
+ */
+LyArray_t *lyarray_create(size_t len, size_t item_size);
 
 /**
  * @brief 写入指定下标的成员
@@ -374,20 +380,10 @@ bool lyvector_is_empty(LyVector_t *vector);
  */
 typedef struct LyPingPong LyPingPong_t;
 
+#if LYDSS_PINGPONG_STATIC_ENABLED
 typedef struct LyPingPongStatic {
     void *opaque[9];
 } LyPingPongStatic_t;
-
-/**
- * @brief 创建一个乒乓缓冲
- *
- * @param len 单块可容纳的成员数量
- * @param item_size 单个成员大小
- * @return 乒乓缓冲句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
- *
- * @note 两块成员区清零后交付
- */
-LyPingPong_t *lypingpong_create(size_t len, size_t item_size);
 
 /**
  * @brief 创建一个静态乒乓缓冲
@@ -403,6 +399,19 @@ LyPingPong_t *lypingpong_create(size_t len, size_t item_size);
  */
 LyPingPong_t *lypingpong_create_static(LyPingPongStatic_t *storage, void *buf_a, void *buf_b,
                                        size_t len, size_t item_size);
+
+#endif
+
+/**
+ * @brief 创建一个乒乓缓冲
+ *
+ * @param len 单块可容纳的成员数量
+ * @param item_size 单个成员大小
+ * @return 乒乓缓冲句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
+ *
+ * @note 两块成员区清零后交付
+ */
+LyPingPong_t *lypingpong_create(size_t len, size_t item_size);
 
 /**
  * @brief 向填充块写入一个成员
@@ -505,18 +514,10 @@ size_t lypingpong_item_size(LyPingPong_t *pingpong);
 
 typedef struct LyStack LyStack_t;
 
+#if LYDSS_STACK_STATIC_ENABLED
 typedef struct LyStackStatic {
     void *opaque[5];
 } LyStackStatic_t;
-
-/**
- * @brief 创建一个栈
- *
- * @param len 栈长度，未校验；传 0 会构造成功但栈永久同时为空且为满
- * @param item_size 单个成员大小
- * @return 栈句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
- */
-LyStack_t *lystack_create(size_t len, size_t item_size);
 
 /**
  * @brief 创建一个静态栈
@@ -528,6 +529,17 @@ LyStack_t *lystack_create(size_t len, size_t item_size);
  * @return 栈句柄，即 storage 本身
  */
 LyStack_t *lystack_create_static(LyStackStatic_t *storage, void *buf, size_t len, size_t item_size);
+
+#endif
+
+/**
+ * @brief 创建一个栈
+ *
+ * @param len 栈长度，未校验；传 0 会构造成功但栈永久同时为空且为满
+ * @param item_size 单个成员大小
+ * @return 栈句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
+ */
+LyStack_t *lystack_create(size_t len, size_t item_size);
 
 /**
  * @brief 数据入栈
@@ -604,18 +616,10 @@ bool lystack_is_full(LyStack_t *stack);
 
 typedef struct LyQueue LyQueue_t;
 
+#if LYDSS_QUEUE_STATIC_ENABLED
 typedef struct LyQueueStatic {
     void *opaque[7];
 } LyQueueStatic_t;
-
-/**
- * @brief 创建一个队列
- *
- * @param len 队列长度，未校验；传 0 会构造成功但队列永久同时为空且为满
- * @param item_size 单个成员大小
- * @return 队列句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
- */
-LyQueue_t *lyqueue_create(size_t len, size_t item_size);
 
 /**
  * @brief 创建一个静态队列
@@ -627,6 +631,17 @@ LyQueue_t *lyqueue_create(size_t len, size_t item_size);
  * @return 队列句柄，即 storage 本身
  */
 LyQueue_t *lyqueue_create_static(LyQueueStatic_t *storage, void *buf, size_t len, size_t item_size);
+
+#endif
+
+/**
+ * @brief 创建一个队列
+ *
+ * @param len 队列长度，未校验；传 0 会构造成功但队列永久同时为空且为满
+ * @param item_size 单个成员大小
+ * @return 队列句柄，len 与 item_size 相乘溢出或内存不足时返回 NULL
+ */
+LyQueue_t *lyqueue_create(size_t len, size_t item_size);
 
 /**
  * @brief 数据入队
@@ -813,20 +828,13 @@ void *lylist_remove(LyList_t *list, LyListNode_t *node);
 /* ------------------------------------ 流 ----------------------------------- */
 #if LYDSS_STREAM_ENABLED
 
-typedef unsigned char cell_t;     ///< 默认以字节为单位
+typedef LYDSS_STREAM_CELL_TYPE cell_t;     ///< 流的单元，由 LYDSS_STREAM_CELL_TYPE 决定
 typedef struct LyStream LyStream_t;
 
+#if LYDSS_STREAM_STATIC_ENABLED
 typedef struct LyStreamStatic {
     void *opaque[6];
 } LyStreamStatic_t;
-
-/**
- * @brief 创建流
- *
- * @param size 缓冲区可容纳的单元数，单元为 cell_t
- * @return 流句柄，size 换算字节数溢出或内存不足时返回 NULL
- */
-LyStream_t *lystream_create(size_t size);
 
 /**
  * @brief 创建一个静态流
@@ -837,6 +845,16 @@ LyStream_t *lystream_create(size_t size);
  * @return 流句柄，即 storage 本身
  */
 LyStream_t *lystream_create_static(LyStreamStatic_t *storage, void *buf, size_t size);
+
+#endif
+
+/**
+ * @brief 创建流
+ *
+ * @param size 缓冲区可容纳的单元数，单元为 cell_t
+ * @return 流句柄，size 换算字节数溢出或内存不足时返回 NULL
+ */
+LyStream_t *lystream_create(size_t size);
 
 /**
  * @brief 数据流入
